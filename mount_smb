@@ -1,0 +1,215 @@
+#! /bin/bash
+# Mounts an SMB volume over an SSH tunnel.
+# The SMB host can be different than the SSH host.
+#
+# The script pauses in the middle to let you use the volume,
+# then when you continue it dismounts and kills the tunnel.
+#
+# Multiple instances of this script can run at a time, since it
+# uses a new device for each invocation and maps local ports 139 and 445
+# for that device to the remote machine.
+#
+# /etc/sudoers setup:
+#   layer ALL=(ALL) NOPASSWD: /sbin/ifconfig lo0 *
+#   layer ALL=(ALL) NOPASSWD: /usr/bin/ssh
+# sudo access is needed for the above commands.
+#
+# Tested on Mac OS X 10.9.
+#
+###############################################################################
+# Defaults with command-line overrides
+
+# Initialize defaults from init file, if there is one:
+[ -f $HOME/.mount_smb ] && source $HOME/.mount_smb
+
+# The host to which we connect to create the tunnel:
+: ${sshhost:=}
+
+# The workgroup:
+: ${workgroup:=}
+
+# The host with the SMB shares we want to mount:
+: ${smbhost:=}
+
+# The name of the SMB share you want to mount:
+: ${folder:=}
+
+# The name of the local, mounted volume:
+: ${mountpoint:=}
+
+# Assume the local and remote users are the same:
+: ${remoteuser:=$USER}
+
+# The SSH config to use
+: ${sshconfig:=$HOME/.ssh/config}
+
+###############################################################################
+set -eu
+
+function usage {
+    if test -n "${*-}"; then
+	echo "Error: $*" 1>&2
+    fi
+    cat 1>&2 <<EOF
+Usage: mount_smb [--debug] [--mount mountpoint] [--user remote-user]
+                 [--sshconfig configfile]
+                 --sshhost sshhost --smbhost smbhost
+                 --folder folder_to_mount --workgroup workgroup
+Optional arguments:
+ --mount mountpoint     :: defaults to /Volumes/\$smbhost
+ --user remote-user     :: defaults to \$USER
+ --sshconfig configfile :: defaults to \$HOME/.ssh/config
+Required arguments:
+ --sshhost smbhost      :: the SSH host
+ --workgroup workgroup  :: the SMB workgroup
+ --smbhost smbhost      :: the SMB host
+ --folder folder        :: the folder to mount
+You can initialize arguments from \$HOME/.mount_smb.  The variable names are:
+ --sshconfig sshconfig
+ --mount     mountpoint
+ --user      remoteuser
+ --sshhost   sshhost
+ --smbhost   smbhost
+ --folder    folder
+ --workgroup workgroup
+
+EOF
+    exit 1
+}
+
+function errordie {
+    if test -n "${*-}"; then
+	echo "Error: $*" 1>&2
+    fi
+    exit 1
+}
+
+debug=
+
+while test $# -gt 0; do
+    case $1 in
+	--debug)     debug=$1             ;;
+	--sshhost)   sshhost=$2;    shift ;;
+	--sshconfig) sshconfig=$2;  shift ;;
+	--smbhost)   smbhost=$2;    shift ;;
+	--folder)    folder=$2;     shift ;;
+	--mount)     mountpoint=$2; shift ;;
+	--workgroup) workgroup=$2;  shift ;;
+	--user)      remoteuser=$2; shift ;;
+	--help) usage ;;
+	-*)     usage ;;
+	*)      usage ;;
+    esac
+    shift
+done
+
+[ "$sshhost" ] || usage sshhost is not set, use --sshhost 
+[ "$smbhost" ] || usage smbhost is not set, use --smbhost 
+[ "$folder" ] || usage folder is not set, use --folder 
+[ "$workgroup" ] || usage workgroup is not set, use --workgroup 
+
+[ "$mountpoint" ] || mountpoint=/Volumes/$smbhost
+
+# Leave here for debugging:
+: cat <<EOF
+Parameters:
+  sshhost=$sshhost
+  workgroup=$workgroup
+  smbhost=$smbhost
+  folder=$folder
+  mountpoint=$mountpoint
+  remoteuser=$remoteuser
+  sshconfig=$sshconfig
+EOF
+
+###############################################################################
+
+ifconfig=/sbin/ifconfig
+
+function find_device {
+    # Find the first unused lo0 IP address.
+    local max=$(/sbin/ifconfig lo0 | \
+		       grep "inet " \
+		       | sed -e 's/.*inet 127\.0\.0\.//g' \
+			     -e 's/ netmask.*//g' | \
+		       sort -n | tail -1)
+    echo 127.0.0.$(( $max + 1 ))
+}
+
+if device=$(find_device); then
+    if [ ! "$device" ]; then
+	usage Could not find device
+    fi
+else
+    usage Could not find device
+fi
+
+function read_encoded_password {
+    local pass
+    [ "${EMACS-}" ] || stty -echo
+    read -p "Password:" -s pass
+    [ "${EMACS-}" ] || stty echo
+    python -c "import sys, urllib as ul; print ul.quote(\"$pass\")"
+}
+
+# This file is removed by ssh once the control socket is shutdown
+socket=/tmp/smbtunnel$$
+
+function start_tunnel {
+    sudo ssh $USER@$sshhost -F $sshconfig \
+	 -f -N -M -S $socket \
+	 -L ${device}:139:${smbhost}:139 \
+	 -L ${device}:445:${smbhost}:445
+}
+
+function stop_tunnel_and_cleanup {
+    if ! umount $mountpoint; then
+	echo umount $mountpoint failed
+    fi
+    # Give the volume time to unmount:
+    sleep 2
+    if [ -d $mountpoint ]; then
+	# Only true if there was an error, I beleive.  Under normal
+	# conditions, umount removes the directory.
+	if ! rmdir $mountpoint; then
+	    echo rmdir $mountpoint failed
+	fi
+    fi
+    if ! sudo $ifconfig lo0 ${device} -alias down; then
+	echo $ifconfig -alias down failed
+    fi
+    # do this last (so no need to error protect it)
+    sudo ssh $USER@$sshhost -F $sshconfig -S $socket -O exit
+}
+
+sudo $ifconfig lo0 ${device} alias up
+
+start_tunnel
+trap "stop_tunnel_and_cleanup" 0
+
+echo Waiting for tunnel to initialize
+sleep 5
+
+mkdir -p $mountpoint
+
+function mountit {
+    echo "Enter your password for the SMB share \"$folder\""
+    pass="$(read_encoded_password)"
+    printf '\n'
+
+    /sbin/mount_smbfs \
+	"//${workgroup};${remoteuser}:${pass}@${device}/${folder}" \
+	$mountpoint
+}
+
+# Do this in a loop, in case the user types the password incorrectly.
+while ! mountit; do
+    :
+done
+
+cat <<EOF
+When you are done with the share, press ENTER and it will be unmounted
+EOF
+read foo
+
+# the cleanup is done in the trap handler
