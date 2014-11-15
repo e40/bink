@@ -1,7 +1,7 @@
-# bink - misc BASH scripts
+# bink - my BASH scripts
 
-_bink_ are a collection of scripts that I share between work and
-home life.
+_bink_ is a collection of scripts that I share between work and
+home.
 
 | **Script** | **Description** |
 | :--------- | :-------------- |
