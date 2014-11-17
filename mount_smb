@@ -1,5 +1,5 @@
 #! /bin/bash
-# Mounts an SMB volume over an SSH tunnel.
+# On Mac OS X, mounts an SMB volume over an SSH tunnel.
 # The SMB host can be different than the SSH host.
 #
 # The script pauses in the middle to let you use the volume,
@@ -206,6 +206,9 @@ function mountit {
 while ! mountit; do
     :
 done
+
+# Open a Finder on it
+open $mountpoint
 
 cat <<EOF
 When you are done with the share, press ENTER and it will be unmounted
