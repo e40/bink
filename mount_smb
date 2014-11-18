@@ -1,20 +1,6 @@
 #! /bin/bash
 # On Mac OS X, mounts an SMB volume over an SSH tunnel.
-# The SMB host can be different than the SSH host.
-#
-# The script pauses in the middle to let you use the volume,
-# then when you continue it dismounts and kills the tunnel.
-#
-# Multiple instances of this script can run at a time, since it
-# uses a new device for each invocation and maps local ports 139 and 445
-# for that device to the remote machine.
-#
-# /etc/sudoers setup:
-#   layer ALL=(ALL) NOPASSWD: /sbin/ifconfig lo0 *
-#   layer ALL=(ALL) NOPASSWD: /usr/bin/ssh
-# sudo access is needed for the above commands.
-#
-# Tested on Mac OS X 10.9.
+# For more info, see the usage below.
 #
 ###############################################################################
 # Defaults with command-line overrides
@@ -55,24 +41,66 @@ Usage: mount_smb [--debug] [--mount mountpoint] [--user remote-user]
                  [--sshconfig configfile]
                  --sshhost sshhost --smbhost smbhost
                  --folder folder_to_mount --workgroup workgroup
+
+On Mac OS X, mount an SMB share via an SSH tunnel.
+
+The script pauses in the middle to let you use the volume,
+then when you continue it dismounts and shuts down the tunnel.
+
+Multiple instances of this script can run at a time, since each one
+uses a new, local device and maps local ports 139 and 445 for that
+device to the remote machine.
+
+/etc/sudoers can be augmented, for easier operation.  Add these lines
+to the end with the "visudo" command:
+   USER ALL=(ALL) NOPASSWD: /sbin/ifconfig lo0 *
+   USER ALL=(ALL) NOPASSWD: /usr/bin/ssh
+where "USER" is replaced with the name of the user executing mount_smb.
+
+This script has been tested on Mac OS X 10.9.
+
 Optional arguments:
  --mount mountpoint     :: defaults to /Volumes/\$smbhost
  --user remote-user     :: defaults to \$USER
  --sshconfig configfile :: defaults to \$HOME/.ssh/config
-Required arguments:
- --sshhost smbhost      :: the SSH host
- --workgroup workgroup  :: the SMB workgroup
- --smbhost smbhost      :: the SMB host
- --folder folder        :: the folder to mount
-You can initialize arguments from \$HOME/.mount_smb.  The variable names are:
- --sshconfig sshconfig
- --mount     mountpoint
- --user      remoteuser
- --sshhost   sshhost
- --smbhost   smbhost
- --folder    folder
- --workgroup workgroup
 
+Required arguments:
+ --sshhost smbhost      :: the SSH host, or the other end of the tunnel
+ --smbhost smbhost      :: the SMB host, which is accessible to the SSH host.
+                           The SMB host can be different than the SSH host.
+ --workgroup workgroup  :: the SMB workgroup
+ --folder folder        :: the SMB folder to mount
+
+You can initialize the following command line arguments from
+the script \$HOME/.mount_smb.  The command line to variable name mapping
+is:
+   --sshconfig sshconfig
+   --mount     mountpoint
+   --user      remoteuser
+   --sshhost   sshhost
+   --smbhost   smbhost
+   --folder    folder
+   --workgroup workgroup
+
+Lastly, if a BASH function named "mount_smb_post_mount" is defined,
+perhaps in \$HOME/.mount_smb or \$HOME/.bashrc, then it is called 
+post-mount, with arguments these arguments:
+
+    mount_smb_post_mount "\$mountpoint" "\$smbhost" "\$folder"
+
+This can be used to do post-mount things, like displaying a particular
+folder with the Finder.  For example:
+
+# When mounting folder "john" on host "linuxhost", open the "incoming"
+# subdirectory in the Finder.
+function mount_smb_post_mount {
+    local mountpoint=\${1-}
+    local smbhost=\${2-}
+    local folder=\${3-}
+    case "\$smbhost" in
+	linuxhost) [ "\$folder" = "john" ] && open \$mountpoint/incoming ;;
+    esac
+}
 EOF
     exit 1
 }
@@ -209,6 +237,14 @@ done
 
 # Open a Finder on it
 open $mountpoint
+
+# If a function named "mount_smb_post_mount" was defined in
+# $HOME/.mount_smb (or possibly in $HOME/.bashrc), then call it.
+# It can be used to do post-mount things, like displaying a particular
+# folder with the Finder.
+if [ "$(type -t mount_smb_post_mount)" = "function" ]; then
+    mount_smb_post_mount "$mountpoint" "$smbhost" "$folder"
+fi
 
 cat <<EOF
 When you are done with the share, press ENTER and it will be unmounted
