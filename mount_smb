@@ -184,10 +184,18 @@ function read_encoded_password {
 socket=/tmp/smbtunnel$$
 
 function start_tunnel {
-    sudo ssh $USER@$sshhost -F $sshconfig \
-	 -f -N -M -S $socket \
+    sudo AUTOSSH_PORT=0 \
+	 autossh -M 0 \
 	 -L ${device}:139:${smbhost}:139 \
-	 -L ${device}:445:${smbhost}:445
+	 -L ${device}:445:${smbhost}:445 \
+	 -F $sshconfig \
+	 -o ControlMaster=auto \
+	 -o ControlPath=$socket \
+	 -o ServerAliveInterval=10 \
+	 -o ServerAliveCountMax=3 \
+	 -o StrictHostKeyChecking=no \
+	 -N -f \
+	 $USER@$sshhost
 }
 
 function stop_tunnel_and_cleanup {
