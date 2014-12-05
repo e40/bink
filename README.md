@@ -6,3 +6,4 @@ home.
 | **Script** | **Description** |
 | :--------- | :-------------- |
 | mount_smb  | mount an SMB share over an SSH tunnel, do --help for usage |
+| m          | mail result of evaluating args to an address |
