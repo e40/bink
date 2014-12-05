@@ -1,0 +1,177 @@
+#! /bin/bash
+# Automate change various Mac OS X settings.
+# It can be run any number of times and it will tell you what it changes,
+# in case settings get reverted.
+
+set -eu
+
+function errordie {
+    echo "Error: $*" 1>&2
+    exit 1
+}
+
+restart_finder=
+
+# Like "defaults write ..." but prints first arg to STDOUT if a
+# change is made, nothing otherwise.
+function d {
+    local description="$1"; shift
+    local domain="$1";      shift
+    local key="$1";         shift
+
+    local current
+    local old
+    local value
+
+    # $* is the value, which can be a single value or a pair:
+    #   -string string_value
+    #   -bool[ean] (true | false | yes | no)
+    #   -int[eger] <integer_value>
+    # we punt on all others
+
+    write="echo $description"
+    write="$write; defaults write \"$domain\" \"$key\" $@"
+
+    if [ "$domain" = "com.apple.finder" ]; then
+	restart_finder=xxx
+    fi
+
+    if current=$(defaults read "$domain" "$key" 2>/dev/null); then
+	# value for key exists, see if it's the same as what we want
+	# it to be
+	if [ $# -eq 1 ]; then
+	    # simple case of a single value
+	    if [ "$current" = "$1" ]; then
+		: # Nothing to do
+	    else
+		old=$current
+		eval "$write"
+		echo "   ****** old value was: $old"
+	    fi
+	else
+	    case "$1" in
+		-bool|-boolean)
+		    case $2 in
+			true|yes) value=1 ;;
+			false|no) value=0 ;;
+			*) errordie bad -boolean value: $2 ;;
+		    esac
+		    ;;
+		-string)        value="$2" ;;
+		-int|-integer)  value="$2" ;;
+		*)  errordie $1 is unrecognized value ;;
+	    esac
+	    if [ "$current" = "$value" ]; then
+		: # Nothing to do
+	    else
+		old=$current
+		eval "$write"
+		echo "   ****** old value was: $old"
+	    fi
+	fi
+    else
+	# didn't exist, write it
+	eval "$write"
+	echo "   NEW SETTING"
+    fi
+}
+
+d "Setting screencap location to $HOME/Downloads" \
+  com.apple.screencapture location -string "$HOME/Downloads"
+
+d "Setting screenshot format to PNG" \
+  com.apple.screencapture type -string "png"
+
+d "Automatically quit printer app once the print jobs complete" \
+  com.apple.print.PrintingPrefs "Quit When Finished" -bool true
+
+d "Ask for password when wake from sleep/screensaver" \
+  com.apple.screensaver askForPassword -int 1
+
+d "Password delay to 6 seconds" \
+  com.apple.screensaver askForPasswordDelay -int 60
+
+d "Use list view in all Finder windows" \
+  com.apple.finder FXPreferredViewStyle Nlsv
+
+d "Do NOT show icons for hard drives, servers, etc on the desktop" \
+  com.apple.finder ShowExternalHardDrivesOnDesktop -bool false
+
+d "Show status bar in Finder by default" \
+  com.apple.finder ShowStatusBar -bool true
+
+d "Display full POSIX path as Finder window title" \
+  com.apple.finder _FXShowPosixPathInTitle -bool true
+
+d "Disable the warning when changing a file extension" \
+  com.apple.finder FXEnableExtensionChangeWarning -bool false
+
+d "Avoid the creation of .DS_Store files on network volumes" \
+  com.apple.desktopservices DSDontWriteNetworkStores -bool true
+
+d "Show all filename extensions in Finder" \
+  NSGlobalDomain AppleShowAllExtensions -bool true
+
+d "Prevent TM from prompting to use new drives as backup volumes" \
+  com.apple.TimeMachine DoNotOfferNewDisksForBackup -bool true
+
+# Assuming this won't hurt on non-laptops
+d "Turn off keyboard illumination when not used for 5 minutes" \
+  com.apple.BezelServices kDimTime -int 300
+
+d "Terminal: copy attributes from Basic profile" \
+  com.apple.Terminal CopyAttributesProfile Basic
+
+[ "$restart_finder" ] && killall Finder
+
+if [ -e /Private/var/vm/sleepimage ]; then
+    echo "Remove the sleep image file to save disk space"
+    sudo rm /Private/var/vm/sleepimage
+    echo "Creating a zero-byte file instead..."
+    sudo touch /Private/var/vm/sleepimage
+    echo "...and make sure it cannot be rewritten"
+    sudo chflags uchg /Private/var/vm/sleepimage
+fi
+
+function xpmset {
+    local description="$1"; shift
+    local flag="$1"; shift
+    local setting="$1"; shift
+    local value="$1"
+
+    local current=$(pmset -g | grep " $setting " | awk '{print $2}')
+    if [ "$current" != "$value" ]; then
+	echo $description
+	echo sudo pmset $flag "$setting" "$value"
+    fi
+}
+
+# speeds up entering sleep mode
+xpmset "Disable hibernation" -a hibernatemode 0
+
+model=`ioreg -l |fgrep '"product-name" = <' |cut -d ""="" -f 2|sed -e 's/[^[:alnum:]]//g' | sed 's/[0-9]//g'`
+
+if [ "$model" == "MacBookPro" ]; then
+    # so I can wake 
+    xpmset "DO wake on magic packet" -a womp 1
+
+    # better have an SSD!!!!
+    xpmset "Disable the sudden motion sensor" -a sms 0
+
+    # http://www.cultofmac.com/221392/quick-hack-speeds-up-retina-macbooks-wake-from-sleep-os-x-tips/
+    xpmset "Speedup wake from sleep" -a standbydelay 86400
+elif [ "$model" == "MacPro" ]; then
+    xpmset "Disable computer sleep" -a sleep 0
+    xpmset "Set display sleep to 10 minutes" -a displaysleep 10
+    xpmset "Set disk sleep to 10 minutes" -a disksleep 10
+    xpmset "Set autorestart to off" -a autorestart 0
+    xpmset "DO NOT wake on magic packet" -a womp 0
+fi
+
+exit 0
+
+# Cannot automate this, since it gets turned back on under various
+# conditions.  Also, can query the current value.
+# Perhaps run as a root cron job??
+echo "Disabling TM local snapshots"
+hash tmutil &> /dev/null && sudo tmutil disablelocal
