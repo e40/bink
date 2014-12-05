@@ -7,4 +7,4 @@ home.
 | :------------ | :-------------- |
 | mount_smb     | mount an SMB share over an SSH tunnel, do --help for usage |
 | macosx_tweaks | automate change various Mac OS X settings |
-| m             | mail result of evaluating args to an address |
+| m             | mail result of evaluating args to an email address |
