@@ -32,10 +32,15 @@
 ###############################################################################
 set -eu
 
+function errordie {
+    echo "Error: $*" 1>&2
+    exit 1
+}
+
+[ "$(type -p autossh)" ] || errordie autossh: command not found
+[ "$(type -p ssh)" ] || errordie ssh: command not found
+
 function usage {
-    if test -n "${*-}"; then
-	echo "Error: $*" 1>&2
-    fi
     cat 1>&2 <<EOF
 Usage: mount_smb [--debug] [--mount mountpoint] [--user remote-user]
                  [--sshconfig configfile]
@@ -131,10 +136,10 @@ while test $# -gt 0; do
     shift
 done
 
-[ "$sshhost" ] || usage sshhost is not set, use --sshhost 
-[ "$smbhost" ] || usage smbhost is not set, use --smbhost 
-[ "$folder" ] || usage folder is not set, use --folder 
-[ "$workgroup" ] || usage workgroup is not set, use --workgroup 
+[ "$sshhost" ] || errordie sshhost is not set, use --sshhost 
+[ "$smbhost" ] || errordie smbhost is not set, use --smbhost 
+[ "$folder" ] || errordie folder is not set, use --folder 
+[ "$workgroup" ] || errordie workgroup is not set, use --workgroup 
 
 [ "$mountpoint" ] || mountpoint=/Volumes/$smbhost
 
@@ -166,10 +171,10 @@ function find_device {
 
 if device=$(find_device); then
     if [ ! "$device" ]; then
-	usage Could not find device
+	errordie Could not find device
     fi
 else
-    usage Could not find device
+    errordie Could not find device
 fi
 
 function read_encoded_password {
