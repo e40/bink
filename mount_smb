@@ -59,6 +59,7 @@ device to the remote machine.
 /etc/sudoers can be augmented, for easier operation.  Add these lines
 to the end with the "visudo" command:
    USER ALL=(ALL) NOPASSWD: /sbin/ifconfig lo0 *
+   USER ALL=(ALL) NOPASSWD: /opt/local/bin/autossh
    USER ALL=(ALL) NOPASSWD: /usr/bin/ssh
 where "USER" is replaced with the name of the user executing mount_smb.
 
@@ -189,8 +190,7 @@ function read_encoded_password {
 socket=/tmp/smbtunnel$$
 
 function start_tunnel {
-    if ! sudo AUTOSSH_PORT=0 \
-	 autossh -M 0 \
+    if ! sudo autossh -M 0 \
 	 -L ${device}:139:${smbhost}:139 \
 	 -L ${device}:445:${smbhost}:445 \
 	 -F $sshconfig \
