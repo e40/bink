@@ -189,7 +189,7 @@ function read_encoded_password {
 socket=/tmp/smbtunnel$$
 
 function start_tunnel {
-    sudo AUTOSSH_PORT=0 \
+    if ! sudo AUTOSSH_PORT=0 \
 	 autossh -M 0 \
 	 -L ${device}:139:${smbhost}:139 \
 	 -L ${device}:445:${smbhost}:445 \
@@ -201,6 +201,13 @@ function start_tunnel {
 	 -o StrictHostKeyChecking=no \
 	 -N -f \
 	 $USER@$sshhost
+    then
+	# We get here for a bad password
+	if ! sudo $ifconfig lo0 ${device} -alias down; then
+	    echo $ifconfig -alias down failed
+	fi
+	errordie autossh failed
+    fi
 }
 
 function stop_tunnel_and_cleanup {
