@@ -29,6 +29,9 @@
 # The SSH config to use
 : ${sshconfig:=$HOME/.ssh/config}
 
+# If non-null, do not open a Finder window post mount
+: ${noopen:=}
+
 ###############################################################################
 set -eu
 
@@ -43,6 +46,7 @@ function errordie {
 function usage {
     cat 1>&2 <<EOF
 Usage: mount_smb [--debug] [--mount mountpoint] [--user remote-user]
+                 [--no-finder-open]
                  [--sshconfig configfile]
                  --sshhost sshhost --smbhost smbhost
                  --folder folder_to_mount --workgroup workgroup
@@ -68,6 +72,7 @@ This script has been tested on Mac OS X 10.9.
 Optional arguments:
  --mount mountpoint     :: defaults to /Volumes/\$smbhost
  --user remote-user     :: defaults to \$USER
+ --no-finder-open       :: do not open a Finder window, post mount
  --sshconfig configfile :: defaults to \$HOME/.ssh/config
 
 Required arguments:
@@ -80,13 +85,14 @@ Required arguments:
 You can initialize the following command line arguments from
 the script \$HOME/.mount_smb.  The command line to variable name mapping
 is:
-   --sshconfig sshconfig
-   --mount     mountpoint
-   --user      remoteuser
-   --sshhost   sshhost
-   --smbhost   smbhost
-   --folder    folder
-   --workgroup workgroup
+   --sshconfig      sshconfig
+   --mount          mountpoint
+   --user           remoteuser
+   --sshhost        sshhost
+   --smbhost        smbhost
+   --folder         folder
+   --workgroup      workgroup
+   --no-finder-open noopen
 
 Lastly, if a BASH function named "mount_smb_post_mount" is defined,
 perhaps in \$HOME/.mount_smb or \$HOME/.bashrc, then it is called 
@@ -122,15 +128,16 @@ debug=
 
 while test $# -gt 0; do
     case $1 in
-	--debug)     debug=$1             ;;
-	--sshhost)   sshhost=$2;    shift ;;
-	--sshconfig) sshconfig=$2;  shift ;;
-	--smbhost)   smbhost=$2;    shift ;;
-	--folder)    folder=$2;     shift ;;
-	--mount)     mountpoint=$2; shift ;;
-	--workgroup) workgroup=$2;  shift ;;
-	--user)      remoteuser=$2; shift ;;
-	--help) usage ;;
+	--debug)          debug=$1             ;;
+	--folder)         folder=$2;     shift ;;
+	--help)           usage                ;;
+	--mount)          mountpoint=$2; shift ;;
+	--no-finder-open) noopen=$1            ;;
+	--smbhost)        smbhost=$2;    shift ;;
+	--sshconfig)      sshconfig=$2;  shift ;;
+	--sshhost)        sshhost=$2;    shift ;;
+	--user)           remoteuser=$2; shift ;;
+	--workgroup)      workgroup=$2;  shift ;;
 	-*)     usage ;;
 	*)      usage ;;
     esac
@@ -235,7 +242,7 @@ sudo $ifconfig lo0 ${device} alias up
 start_tunnel
 trap "stop_tunnel_and_cleanup" 0
 
-echo Waiting for tunnel to initialize
+echo Waiting for tunnel to initialize on ${device}
 sleep 5
 
 mkdir -p $mountpoint
@@ -255,15 +262,17 @@ while ! mountit; do
     :
 done
 
-# Open a Finder on it
-open $mountpoint
-
 # If a function named "mount_smb_post_mount" was defined in
 # $HOME/.mount_smb (or possibly in $HOME/.bashrc), then call it.
 # It can be used to do post-mount things, like displaying a particular
 # folder with the Finder.
 if [ "$(type -t mount_smb_post_mount)" = "function" ]; then
     mount_smb_post_mount "$mountpoint" "$smbhost" "$folder"
+elif [ "$noopen" ]; then
+    : # do nothing
+else
+    # Open a Finder on it
+    open $mountpoint
 fi
 
 cat <<EOF
