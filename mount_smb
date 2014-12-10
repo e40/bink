@@ -209,6 +209,7 @@ function start_tunnel {
 	 -L ${device}:445:${smbhost}:445 \
 	 -F $sshconfig -i $sshid \
 	 -o ControlMaster=auto \
+	 -o ControlPersist=yes \
 	 -o ControlPath=$socket \
 	 -o ServerAliveInterval=10 \
 	 -o ServerAliveCountMax=3 \
@@ -244,9 +245,13 @@ function stop_tunnel_and_cleanup {
 	echo $ifconfig -alias down failed
     fi
     # do this last (so no need to error protect it)
-    [ -e $socket ] && \
+    if [ -e $socket ]; then
+	echo Shutting down autossh...
 	sudo ssh $USER@$sshhost \
 	     -F $sshconfig -i $sshid -S $socket -O exit
+    else
+	echo Warning: autossh socket does not exist, cannot shut it down
+    fi
 }
 
 sudo $ifconfig lo0 ${device} alias up
