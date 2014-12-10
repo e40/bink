@@ -18,10 +18,7 @@
 : ${smbhost:=}
 
 # The name of the SMB share you want to mount:
-: ${folder:=}
-
-# The name of the local, mounted volume:
-: ${mountpoint:=}
+: ${share:=}
 
 # Assume the local and remote users are the same:
 : ${remoteuser:=$USER}
@@ -45,11 +42,10 @@ function errordie {
 
 function usage {
     cat 1>&2 <<EOF
-Usage: mount_smb [--debug] [--mount mountpoint] [--user remote-user]
-                 [--no-finder-open]
+Usage: mount_smb [--debug] [--user remote-user] [--no-finder-open]
                  [--sshconfig configfile]
                  --sshhost sshhost --smbhost smbhost
-                 --folder folder_to_mount --workgroup workgroup
+                 --share name[,name2] --workgroup workgroup
 
 On Mac OS X, mount an SMB share via an SSH tunnel.
 
@@ -62,35 +58,34 @@ device to the remote machine.
 
 /etc/sudoers can be augmented, for easier operation.  Add these lines
 to the end with the "visudo" command:
-   USER ALL=(ALL) NOPASSWD: /sbin/ifconfig lo0 *
-   USER ALL=(ALL) NOPASSWD: /opt/local/bin/autossh
-   USER ALL=(ALL) NOPASSWD: /usr/bin/ssh
-where "USER" is replaced with the name of the user executing mount_smb.
+   \$USER ALL=(ALL) NOPASSWD: /sbin/ifconfig lo0 *
+   \$USER ALL=(ALL) NOPASSWD: /opt/local/bin/autossh
+   \$USER ALL=(ALL) NOPASSWD: /usr/bin/ssh
+where "\$USER" is replaced with the name of the user executing mount_smb.
 
 This script has been tested on Mac OS X 10.9.
 
 Optional arguments:
- --mount mountpoint     :: defaults to /Volumes/\$smbhost
  --user remote-user     :: defaults to \$USER
  --no-finder-open       :: do not open a Finder window, post mount
  --sshconfig configfile :: defaults to \$HOME/.ssh/config
 
 Required arguments:
- --sshhost smbhost      :: the SSH host, or the other end of the tunnel
- --smbhost smbhost      :: the SMB host, which is accessible to the SSH host.
-                           The SMB host can be different than the SSH host.
- --workgroup workgroup  :: the SMB workgroup
- --folder folder        :: the SMB folder to mount
+ --sshhost sshhost        :: the SSH host, or the other end of the tunnel
+ --smbhost smbhost        :: the SMB host, which is accessible to the SSH host.
+                             The SMB host can be different than the SSH host.
+ --workgroup workgroup    :: the SMB workgroup
+ --share name[,name2,...] :: the SMB share to mount -- if multiple names
+                             are given mount each one for the given smbhost
 
 You can initialize the following command line arguments from
 the script \$HOME/.mount_smb.  The command line to variable name mapping
 is:
    --sshconfig      sshconfig
-   --mount          mountpoint
    --user           remoteuser
    --sshhost        sshhost
    --smbhost        smbhost
-   --folder         folder
+   --share          share
    --workgroup      workgroup
    --no-finder-open noopen
 
@@ -98,19 +93,19 @@ Lastly, if a BASH function named "mount_smb_post_mount" is defined,
 perhaps in \$HOME/.mount_smb or \$HOME/.bashrc, then it is called 
 post-mount, with arguments these arguments:
 
-    mount_smb_post_mount "\$mountpoint" "\$smbhost" "\$folder"
+    mount_smb_post_mount "\$mountpoint" "\$smbhost" "\$share"
 
 This can be used to do post-mount things, like displaying a particular
-folder with the Finder.  For example:
+share with the Finder.  For example:
 
-# When mounting folder "john" on host "linuxhost", open the "incoming"
+# When mounting share "john" on host "linuxhost", open the "incoming"
 # subdirectory in the Finder.
 function mount_smb_post_mount {
     local mountpoint=\${1-}
     local smbhost=\${2-}
-    local folder=\${3-}
+    local share=\${3-}
     case "\$smbhost" in
-	linuxhost) [ "\$folder" = "john" ] && open \$mountpoint/incoming ;;
+	linuxhost) [ "\$share" = "john" ] && open \$mountpoint/incoming ;;
     esac
 }
 EOF
@@ -129,9 +124,10 @@ debug=
 while test $# -gt 0; do
     case $1 in
 	--debug)          debug=$1             ;;
-	--folder)         folder=$2;     shift ;;
+	# deprecated, but still works:
+	--folder)         share=$2;      shift ;;
+	--share)          share=$2;      shift ;;
 	--help)           usage                ;;
-	--mount)          mountpoint=$2; shift ;;
 	--no-finder-open) noopen=$1            ;;
 	--smbhost)        smbhost=$2;    shift ;;
 	--sshconfig)      sshconfig=$2;  shift ;;
@@ -144,12 +140,12 @@ while test $# -gt 0; do
     shift
 done
 
-[ "$sshhost" ] || errordie sshhost is not set, use --sshhost 
-[ "$smbhost" ] || errordie smbhost is not set, use --smbhost 
-[ "$folder" ] || errordie folder is not set, use --folder 
-[ "$workgroup" ] || errordie workgroup is not set, use --workgroup 
+[ "$sshhost" ]   || errordie sshhost is not set, use --sshhost 
+[ "$smbhost" ]   || errordie smbhost is not set, use --smbhost 
+[ "$share" ]     || errordie share is not set, use --share 
+[ "$workgroup" ] || errordie workgroup is not set, use --workgroup
 
-[ "$mountpoint" ] || mountpoint=/Volumes/$smbhost
+shares="$(echo $share | sed 's/,/ /g')"
 
 # Leave here for debugging:
 : cat <<EOF
@@ -157,13 +153,16 @@ Parameters:
   sshhost=$sshhost
   workgroup=$workgroup
   smbhost=$smbhost
-  folder=$folder
-  mountpoint=$mountpoint
   remoteuser=$remoteuser
   sshconfig=$sshconfig
+  share=$share
+
+  shares=$shares
 EOF
 
 ###############################################################################
+
+mountpoints=
 
 ifconfig=/sbin/ifconfig
 
@@ -218,23 +217,26 @@ function start_tunnel {
 }
 
 function stop_tunnel_and_cleanup {
-    if ! umount $mountpoint; then
-	echo umount $mountpoint failed
-    fi
-    # Give the volume time to unmount:
-    sleep 2
-    if [ -d $mountpoint ]; then
-	# Only true if there was an error, I beleive.  Under normal
-	# conditions, umount removes the directory.
-	if ! rmdir $mountpoint; then
-	    echo rmdir $mountpoint failed
+    for mountpoint in $mountpoints; do
+	if ! umount $mountpoint; then
+	    echo umount $mountpoint failed
 	fi
-    fi
+	# Give the volume time to unmount:
+	sleep 2
+	if [ -d $mountpoint ]; then
+	    # Only true if there was an error, I beleive.  Under normal
+	    # conditions, umount removes the directory.
+	    if ! rmdir $mountpoint; then
+		echo rmdir $mountpoint failed
+	    fi
+	fi
+    done
+
     if ! sudo $ifconfig lo0 ${device} -alias down; then
 	echo $ifconfig -alias down failed
     fi
     # do this last (so no need to error protect it)
-    sudo ssh $USER@$sshhost -F $sshconfig -S $socket -O exit
+    [ -e $socket ] && sudo ssh $USER@$sshhost -F $sshconfig -S $socket -O exit
 }
 
 sudo $ifconfig lo0 ${device} alias up
@@ -244,36 +246,44 @@ trap "stop_tunnel_and_cleanup" 0
 
 echo Waiting for tunnel to initialize on ${device}
 sleep 5
-
-mkdir -p $mountpoint
+[ -e $socket ] || errordie autossh did not create $socket file
 
 function mountit {
-    echo "Enter your password for the SMB share \"$folder\""
+    local mountpoint
+    
+    echo "Enter your password for the SMB shares $smbhost:"
     pass="$(read_encoded_password)"
     printf '\n'
 
-    /sbin/mount_smbfs \
-	"//${workgroup};${remoteuser}:${pass}@${device}/${folder}" \
-	$mountpoint
+    for share in $shares; do
+	mountpoint="/Volumes/$smbhost-$share"
+	mountpoints="$mountpoints $mountpoint"
+
+	mkdir -p $mountpoint
+
+	/sbin/mount_smbfs \
+	    "//${workgroup};${remoteuser}:${pass}@${device}/${share}" \
+	    $mountpoint
+
+	# If a function named "mount_smb_post_mount" was defined in
+	# $HOME/.mount_smb (or possibly in $HOME/.bashrc), then call it.
+	# It can be used to do post-mount things, like displaying a particular
+	# share with the Finder.
+	if [ "$(type -t mount_smb_post_mount)" = "function" ]; then
+	    mount_smb_post_mount "$mountpoint" "$smbhost" "$share"
+	elif [ "$noopen" ]; then
+	    : # do nothing
+	else
+	    # Open a Finder on it
+	    open $mountpoint
+	fi
+    done
 }
 
 # Do this in a loop, in case the user types the password incorrectly.
 while ! mountit; do
     :
 done
-
-# If a function named "mount_smb_post_mount" was defined in
-# $HOME/.mount_smb (or possibly in $HOME/.bashrc), then call it.
-# It can be used to do post-mount things, like displaying a particular
-# folder with the Finder.
-if [ "$(type -t mount_smb_post_mount)" = "function" ]; then
-    mount_smb_post_mount "$mountpoint" "$smbhost" "$folder"
-elif [ "$noopen" ]; then
-    : # do nothing
-else
-    # Open a Finder on it
-    open $mountpoint
-fi
 
 cat <<EOF
 When you are done with the share, press ENTER and it will be unmounted
