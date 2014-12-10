@@ -26,6 +26,9 @@
 # The SSH config to use
 : ${sshconfig:=$HOME/.ssh/config}
 
+# The SSH identity to use
+: ${sshid:=$HOME/.ssh/id_dsa}
+
 # If non-null, do not open a Finder window post mount
 : ${noopen:=}
 
@@ -43,7 +46,8 @@ function errordie {
 function usage {
     cat 1>&2 <<EOF
 Usage: mount_smb [--debug] [--user remote-user] [--no-finder-open]
-                 [--sshconfig configfile]
+                 [--sshconfig config]
+                 [--sshidentity identity]
                  --sshhost sshhost --smbhost smbhost
                  --share name[,name2] --workgroup workgroup
 
@@ -68,7 +72,8 @@ This script has been tested on Mac OS X 10.9.
 Optional arguments:
  --user remote-user     :: defaults to \$USER
  --no-finder-open       :: do not open a Finder window, post mount
- --sshconfig configfile :: defaults to \$HOME/.ssh/config
+ --sshconfig config     :: defaults to \$HOME/.ssh/config
+ --sshidentity identity :: defaults to \$HOME/.ssh/id_dsa
 
 Required arguments:
  --sshhost sshhost        :: the SSH host, or the other end of the tunnel
@@ -82,6 +87,7 @@ You can initialize the following command line arguments from
 the script \$HOME/.mount_smb.  The command line to variable name mapping
 is:
    --sshconfig      sshconfig
+   --sshidentity    sshidentity
    --user           remoteuser
    --sshhost        sshhost
    --smbhost        smbhost
@@ -131,6 +137,7 @@ while test $# -gt 0; do
 	--no-finder-open) noopen=$1            ;;
 	--smbhost)        smbhost=$2;    shift ;;
 	--sshconfig)      sshconfig=$2;  shift ;;
+	--sshidentity)    sshid=$2;      shift ;;
 	--sshhost)        sshhost=$2;    shift ;;
 	--user)           remoteuser=$2; shift ;;
 	--workgroup)      workgroup=$2;  shift ;;
@@ -155,6 +162,7 @@ Parameters:
   smbhost=$smbhost
   remoteuser=$remoteuser
   sshconfig=$sshconfig
+  sshid=$sshid
   share=$share
 
   shares=$shares
@@ -199,7 +207,7 @@ function start_tunnel {
     if ! sudo autossh -M 0 \
 	 -L ${device}:139:${smbhost}:139 \
 	 -L ${device}:445:${smbhost}:445 \
-	 -F $sshconfig \
+	 -F $sshconfig -i $sshid \
 	 -o ControlMaster=auto \
 	 -o ControlPath=$socket \
 	 -o ServerAliveInterval=10 \
@@ -236,7 +244,9 @@ function stop_tunnel_and_cleanup {
 	echo $ifconfig -alias down failed
     fi
     # do this last (so no need to error protect it)
-    [ -e $socket ] && sudo ssh $USER@$sshhost -F $sshconfig -S $socket -O exit
+    [ -e $socket ] && \
+	sudo ssh $USER@$sshhost \
+	     -F $sshconfig -i $sshid -S $socket -O exit
 }
 
 sudo $ifconfig lo0 ${device} alias up
