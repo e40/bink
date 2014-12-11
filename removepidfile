@@ -1,0 +1,17 @@
+#! /bin/bash
+
+set -eu
+
+if [ $# -ne 1 ]; then
+    echo Usage: $0 pidfile
+    exit 1
+fi
+
+case "$1" in
+     /tmp/autosshpid*)
+	;;
+     *)  echo "$0: illegal argument: $1"
+	 exit 1
+esac
+
+kill $(cat $1)
