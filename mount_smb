@@ -35,6 +35,8 @@
 ###############################################################################
 set -eu
 
+pidfileprefix="/tmp/autosshpid"
+
 function errordie {
     echo "Error: $*" 1>&2
     exit 1
@@ -68,7 +70,7 @@ to the end with the "visudo" command:
    $USER ALL=(ALL) NOPASSWD: /sbin/ifconfig lo0 *
    $USER ALL=(ALL) NOPASSWD: /opt/local/bin/autossh
    $USER ALL=(ALL) NOPASSWD: /usr/bin/ssh
-   $USER ALL=(ALL) NOPASSWD: $removepidfile
+   $USER ALL=(ALL) NOPASSWD: $removepidfile ${pidfileprefix}*
 
 This script has been tested on Mac OS X 10.9.
 
@@ -306,7 +308,7 @@ function mount_shares {
 
     # This file is removed by ssh once the control socket is shutdown
     socket=/tmp/smbtunnel$$
-    pidfile=/tmp/autosshpid$$
+    pidfile=${pidfileprefix}$$
 
     if device=$(find_device); then
 	if [ ! "$device" ]; then
