@@ -1,5 +1,6 @@
 #! /bin/bash
-# On Mac OS X, mounts an SMB volume over an SSH tunnel.
+# On Mac OS X, mounts an SMB volume over an SSH tunnel.  It uses autossh
+# to insure the connection stays open, say, across sleeping a laptop.
 # For more info, see the usage below.
 #
 ###############################################################################
@@ -55,17 +56,22 @@ Usage: mount_smb [--debug] [--user remote-user] [--no-finder-open]
                  --sshhost sshhost --smbhost smbhost
                  --share name[,name2] --workgroup workgroup
 
-On Mac OS X, mount an SMB share via an SSH tunnel.
+On Mac OS X, mount an SMB share via an SSH tunnel.  It uses autossh
+to ensure the connection stays open, even in the face of sleeping a laptop
+or interrupted network connections.
 
 The script pauses in the middle to let you use the volume,
 then when you continue it dismounts and shuts down the tunnel.
+
+It uses "sudo" so you either need to supply the password or add to
+/etc/sudoers for password-less operation.
 
 Multiple instances of this script can run at a time, since each one
 uses a new, local device and maps local ports 139 and 445 for that
 device to the remote machine.
 
-/etc/sudoers can be augmented, for easier operation.  Add these lines
-to the end with the "visudo" command:
+/etc/sudoers changes for password-less operation are below, which 
+should be added with the "visudo" command as root:
    Defaults        env_keep += "AUTOSSH_PIDFILE"
    $USER ALL=(ALL) NOPASSWD: /sbin/ifconfig lo0 *
    $USER ALL=(ALL) NOPASSWD: /opt/local/bin/autossh
