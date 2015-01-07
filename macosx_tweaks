@@ -193,7 +193,7 @@ d "Chrome: Use the system-native print preview dialog" \
 
 if [ -e /Private/var/vm/sleepimage ]; then
     echo "Remove the sleep image file to save disk space"
-    sudo rm /Private/var/vm/sleepimage
+    sudo rm -f /Private/var/vm/sleepimage
     echo "Creating a zero-byte file instead..."
     sudo touch /Private/var/vm/sleepimage
     echo "...and make sure it cannot be rewritten"
@@ -236,6 +236,21 @@ elif [ "$model" == "MacPro" ]; then
 fi
 
 [ "$restart_finder" ] && killall Finder
+
+# autossh for mount_smb
+# git because it has security fixes over the Apple one
+# coreutils because ... something needed for scripting?
+# fwknop-client because I need to knock
+sudo port install autossh bash coreutils git fwknop-client
+
+shell="$(dscl . -read /Users/$USER UserShell)"
+if [ "$shell" != "UserShell: /opt/local/bin/bash" ]; then
+    cat <<EOF 
+SHELL=$SHELL and not /opt/local/bin/bash.
+Change it in System Preferences, Users & Groups, right-click on user and
+select "Advanced Options..."
+EOF
+fi
 
 exit 0
 
