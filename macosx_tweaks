@@ -241,7 +241,8 @@ fi
 # git because it has security fixes over the Apple one
 # coreutils because ... something needed for scripting?
 # fwknop-client because I need to knock
-sudo port install autossh bash coreutils git fwknop-client
+# wget because it's handy
+sudo port install autossh bash coreutils git fwknop-client wget
 
 shell="$(dscl . -read /Users/$USER UserShell)"
 if [ "$shell" != "UserShell: /opt/local/bin/bash" ]; then

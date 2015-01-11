@@ -14,5 +14,9 @@ case "$1" in
 	 exit 1
 esac
 
-kill $(cat $1)
-rm -f $1
+if [ ! -f $1 ]; then
+    echo $0: $1 does not exist
+else
+    kill $(cat $1)
+    rm -f $1
+fi
