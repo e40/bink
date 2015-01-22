@@ -2,7 +2,7 @@
 # On Mac OS X, mounts an SMB volume over an SSH tunnel.  It uses autossh
 # to insure the connection stays open, say, across sleeping a laptop.
 # For more info, see the usage below.
-#
+#  
 ###############################################################################
 # Defaults with command-line overrides
 
@@ -32,6 +32,9 @@
 
 # If non-null, do not open a Finder window post mount
 : ${noopen:=}
+
+# If non-null, be verbose
+: ${debug:=}
 
 ###############################################################################
 set -eu
@@ -105,14 +108,16 @@ is:
    --share          share
    --workgroup      workgroup
    --no-finder-open noopen
+   --debug          debug
 
-Lastly, if a BASH function named "mount_smb_post_mount" is defined,
-perhaps in \$HOME/.mount_smb or \$HOME/.bashrc, then it is called 
+In this script, two BASH functions have significance:
+
+If "mount_smb_post_mount" is defined, it is called 
 post-mount, with arguments these arguments:
 
     mount_smb_post_mount "\$mountpoint" "\$smbhost" "\$share"
 
-This can be used to do post-mount things, like displaying a particular
+It can be used to do post-mount things, like displaying a particular
 share with the Finder.  For example:
 
 # When mounting share "john" on host "linuxhost", open the "incoming"
@@ -125,6 +130,14 @@ function mount_smb_post_mount {
 	linuxhost) [ "\$share" = "john" ] && open \$mountpoint/incoming ;;
     esac
 }
+
+If "mount_smb_timer" is defined, it is called every minute post-mount with
+these arguments:
+
+    mount_smb_timer \$minutes_since_mount
+
+It can be used to open network access after a set period of time elapses,
+for example.
 EOF
     exit 1
 }
@@ -136,7 +149,9 @@ function errordie {
     exit 1
 }
 
-debug=
+function debug {
+    [ "$debug" ] && echo "$(date "+%Y-%m-%d %H:%M:%S"): $@"
+}
 
 while test $# -gt 0; do
     case $1 in
@@ -199,13 +214,31 @@ function read_encoded_password {
     python -c "import sys, urllib as ul; print ul.quote(\"$pass\")"
 }
 
+password=
+
 function set_password {
-    echo "Enter your password for the SMB shares $smbhost:"
-    password="$(read_encoded_password)"
-    printf '\n'
+    if [ ! "$password" ]; then
+	echo "Enter your password for the SMB shares $smbhost:"
+	password="$(read_encoded_password)"
+	printf '\n'
+    fi
+}
+
+function device_up {
+    debug binding $device...
+    sudo $ifconfig lo0 ${device} alias up
+}
+
+function device_down {
+    debug unbinding $device...
+    if ! sudo $ifconfig lo0 ${device} -alias down; then
+	echo $ifconfig -alias down failed
+    fi
 }
 
 function start_tunnel {
+    device_up
+    
     # Using -o ControlPersist=yes causes the autossh to not stick around,
     # which is definitely not what we want, because the reconnect will not
     # happen across sleeping the OS.  However, not using it also causes
@@ -227,43 +260,74 @@ function start_tunnel {
 	 -N -f \
 	 $USER@$sshhost
     then
-	# We get here for a bad password
-	if ! sudo $ifconfig lo0 ${device} -alias down; then
-	    echo $ifconfig -alias down failed
-	fi
-	errordie autossh failed
+	debug autossh failed
+	device_down
+	return 1
     fi
+
+    trap "stop_tunnel_and_cleanup" 0
+
+    debug waiting for tunnel to initialize on ${device}
+    sleep 5
+    if [ ! -e $socket ]; then
+	debug autossh did not create $socket file...
+	device_down
+	return 1
+    fi
+}
+
+function start_tunnel_retry {
+    # try 5 times to start the tunnel
+    local n=${1-5}
+    local status
+    while [ $n -gt 0 ]; do
+	debug "start tunnel..."
+	if ! start_tunnel; then
+	    debug tunnel did not start, try again
+	    n=$(( $n - 1 ))
+	    status=1
+	else
+	    status=0
+	fi
+	break
+    done
+    return $status
 }
 
 function stop_tunnel_and_cleanup {
     for mountpoint in $mountpoints; do
-	if ! umount $mountpoint; then
-	    echo umount $mountpoint failed
-	fi
-	# Give the volume time to unmount:
-	sleep 2
-	if [ -d $mountpoint ]; then
-	    # Only true if there was an error, I beleive.  Under normal
-	    # conditions, umount removes the directory.
-	    if ! rmdir $mountpoint; then
-		echo rmdir $mountpoint failed
+	# can't test the directory's existence the standard way because
+	# this will cause the script to hang.  Use the `mount' command.
+	if mount | grep -q $mountpoint; then
+	    debug $mountpoint is mounted
+	    if umount $mountpoint; then
+		debug $mountpoint unmounted
+	    else
+		errordie umount $mountpoint failed
 	    fi
+	else
+	    debug $mountpoint is not mounted
 	fi
+
+	# Give the volume time to unmount
+	sleep 2
     done
 
     if ! sudo $ifconfig lo0 ${device} -alias down; then
-	echo $ifconfig -alias down failed
+	debug $ifconfig -alias down failed
     fi
 
     # do this last (so no need to error protect it)
     if [ -e $socket ]; then
 	sshargs="$USER@$sshhost -F $sshconfig -i $sshid -S $socket "
-	echo Shutting down ssh...
+	debug shutting down ssh...
 	sudo $ssh $sshargs -O exit
-	echo Killing autossh
+	debug killing autossh
 	sudo $removepidfile $pidfile
     else
-	echo Warning: autossh socket does not exist, cannot shut it down
+	debug warning: autossh socket does not exist, cannot shut it down
+	# get rid of the pidfile, at least
+	sudo $removepidfile $pidfile
     fi
 }
 
@@ -299,6 +363,25 @@ function mount_shares {
 	    open $mountpoint
 	fi
     done
+
+    announce
+}
+
+function announce {
+    cat <<EOF
+
+When you are done with the share, press ENTER and it will be unmounted
+EOF
+}
+
+# Increment the minute timer and possibly call the mount_smb_timer function
+# defined by the user, which might do something like knock.
+min=1
+function incf_min {
+    min=$(( $min + 1 ))
+    if [ "$(type -t mount_smb_timer)" = "function" ]; then
+	mount_smb_timer $min
+    fi
 }
 
 ###############################################################################
@@ -306,6 +389,10 @@ function mount_shares {
 # We put the main body of code in a list {} so that if the script is
 # modified after it starts it won't cause problems.
 {
+    if [ "$(type -t mount_smb_usersetup)" = "function" ]; then
+	mount_smb_usersetup
+    fi
+
     password=
 
     mountpoints=
@@ -324,22 +411,35 @@ function mount_shares {
 	errordie Could not find device
     fi
 
-    sudo $ifconfig lo0 ${device} alias up
-
-    start_tunnel
-    trap "stop_tunnel_and_cleanup" 0
-
-    echo Waiting for tunnel to initialize on ${device}
-    sleep 5
-    [ -e $socket ] || errordie autossh did not create $socket file
+    start_tunnel_retry 5
 
     mount_shares
 
-    cat <<EOF
-When you are done with the share, press ENTER and it will be unmounted
-EOF
-    read foo
-
+    while true; do
+	# wake up every 60 seconds to see if $socket exists
+	if read -t 60 foo; then
+	    # User typed something
+	    break
+	else
+	    incf_min
+	    # If the socket disappears that means the ssh that autossh
+	    # started died, due to a network outage or something similar.
+	    # Wait for it to come back.
+	    oknow=
+	    while [ ! -e "$socket" ]; do
+		debug waiting for $socket to reappear...
+		sleep 60
+		incf_min
+		oknow=xxx
+	    done
+	    if [ "$oknow" ]; then
+		# The socket reappeared
+		debug all systems go
+		announce
+	    fi
+	fi
+    done
+    
     # the cleanup is done in the trap handler
     exit
 }
