@@ -22,7 +22,9 @@ rc=$HOME/.knockrc
 
 : ${debug:=}
 function debug {
-    [ -n "$debug" ] && echo "$@"
+    if [ -n "$debug" ]; then
+	echo "$@"
+    fi
 }
 
 function now {
