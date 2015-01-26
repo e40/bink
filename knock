@@ -1,0 +1,128 @@
+#! /bin/bash
+# Script to knock, but not more often than a specific number of seconds
+# (so it's a no-op if we try and knock before that).
+
+###############################################################################
+# User settable parameters
+
+# The actual knock period minus 30 minutes
+#   (From FW_ACCESS_TIMEOUT in ficonfig/hosts/fw0/etc/fwknop/access.conf)
+knock_period_seconds=$(( 28800 - 30 * 60 ))
+
+knockroot=$HOME/.knock.d
+
+###############################################################################
+
+set -eu
+
+mkdir -p $knockroot
+
+rc=$HOME/.knockrc
+[ -f $rc ] && source $rc
+
+: ${debug:=}
+function debug {
+    [ -n "$debug" ] && echo "$@"
+}
+
+function now {
+    date +%s
+}
+
+function usage {
+    cat 1>&2 <<EOF
+Usage: knock hostname
+
+Knock, with fwknop, on "hostname", where "hostname" is the name
+of a stanza in \$HOME/.fwknoprc.  The difference is that we do not 
+knock more than once each $knock_period_seconds seconds.
+
+"knock" creates and uses $knockroot.
+
+\$HOME/.knockrc is sourced at the start of knock.  Two user-defined
+functions can be defined in it, which are called if they exist:
+
+knock_preknock_hook :: a function called before pretty much anything is done
+
+knock_user_knock :: called in place of fwknop -- can be useful if you
+  want to tweak the arguments to fwknop.  It is given a single argument,
+  \$hostname.
+EOF
+    exit 1
+}
+
+function errordie {
+    echo "Error: $*" 1>&2
+    exit 1
+}
+
+hostname=
+
+while test $# -gt 0; do
+    case $1 in
+	--help)  usage ;;
+	--debug) debug=$1 ;;
+	-*)      usage ;;
+	*)       [ $# -eq 1 ] || usage
+		 hostname=$1 ;;
+    esac
+    shift
+done
+
+[ "$hostname" ] || usage hostname not given
+
+# The modification time of this directory is use to record when we knock
+knockdir=$knockroot/knock.${hostname}
+
+# A lock directory to make sure two invocations of this script don't
+# run at the same time
+lockdir=$knockroot/knock.${hostname}.lock
+
+if [ "$(type -t knock_preknock_hook)" = "function" ]; then
+    knock_preknock_hook
+fi
+
+if ! mkdir $lockdir > /dev/null 2>&1; then
+    # Couldn't make it.  Make sure the lock isn't older than a
+    # minute.
+
+    eval $(stat -s $lockdir)
+    now=
+    since_created=$(( $(now) - $st_ctime ))
+    if [ $since_created -gt 60 ]; then
+	# this script shouldn't take more than a minute to run, so
+	# tell the caller we have a dead lock
+	errordie "$lockdir held too long, please remove by hand"
+    else
+	debug another copy of this script is running, exiting
+	exit 0
+    fi
+fi
+trap "rmdir $lockdir" 0
+
+if [ -d $knockdir ]; then
+    eval $(stat -s $knockdir)
+    seconds_since_knock=$(( $(now) - $st_mtime ))
+    debug seconds_since_knock=$seconds_since_knock
+else
+    seconds_since_knock=
+fi
+
+if [ -z "$seconds_since_knock" ]; then
+    debug initialize knockdir since it does not exist
+    mkdir $knockdir
+elif [ $seconds_since_knock -lt $knock_period_seconds ]; then
+    left=$(( $knock_period_seconds - $seconds_since_knock ))
+    debug "not time to knock yet ($left more seconds)"
+    exit 0
+fi
+
+echo $(date): time to knock for $hostname
+
+if [ "$(type -t knock_user_knock)" = "function" ]; then
+    knock_user_knock "$hostname"
+else
+    fwknop -n "$hostname"
+fi
+
+touch $knockdir

@@ -5,9 +5,10 @@ home.  I hope you enjoy them.
 
 | **Script**    | **Description** |
 | :------------ | :-------------- |
-| mount_smb     | BSD/MacOSX: mount an SMB share over an SSH tunnel |
-| macosx_tweaks | automate change various Mac OS X settings |
+| knock         | knock but no more than needed |
 | m             | mail result of evaluating args to an email address |
+| macosx_tweaks | automate change various Mac OS X settings |
+| mount_smb     | BSD/MacOSX: mount an SMB share over an SSH tunnel |
 
 For more detailed information on the scripts, see the source for the
 script.  I recommend that you not run the script without examining it
