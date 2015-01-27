@@ -36,6 +36,9 @@
 # If non-null, be verbose
 : ${verbose:=}
 
+# If non-null, be debuggy
+: ${debug:=}
+
 ###############################################################################
 set -eu
 
@@ -53,7 +56,8 @@ removepidfile="$(type -p removepidfile)" ||
 
 function usage {
     cat 1>&2 <<EOF
-Usage: mount_smb [--verbose] [--user remote-user] [--no-finder-open]
+Usage: mount_smb [--verbose] [--debug]
+                 [--user remote-user] [--no-finder-open]
                  [--sshconfig config]
                  [--sshidentity identity]
                  --sshhost sshhost --smbhost smbhost
@@ -85,6 +89,7 @@ This script has been tested on Mac OS X 10.9.
 
 Optional arguments:
  --verbose              :: print informative messages, with date stamps
+ --debug                :: aid in debugging; certain timeouts are smaller
  --user remote-user     :: defaults to \$USER
  --no-finder-open       :: do not open a Finder window, post mount
  --sshconfig config     :: defaults to \$HOME/.ssh/config
@@ -110,6 +115,7 @@ is:
    --workgroup      workgroup
    --no-finder-open noopen
    --verbose        verbose
+   --debug          debug
 
 In this script, two BASH functions have significance:
 
@@ -157,8 +163,8 @@ function verbose {
 
 while test $# -gt 0; do
     case $1 in
-	# used to be called --debug, so leave it
-	--debug|--verbose) verbose=$1           ;;
+	--debug)           debug=$1             ;;
+	--verbose)         verbose=$1           ;;
 	# deprecated, but still works:
 	--folder)          share=$2;      shift ;;
 	--share)           share=$2;      shift ;;
@@ -249,6 +255,10 @@ function start_tunnel {
     #
     # To work around the above problem, we use AUTOSSH_PIDFILE and kill
     # it manually when the script exits.
+    #
+    # CONSIDER: setting AUTOSSH_POLL=60 (600 is the default) so
+    #    so the ssh will come back quicker.
+
     if ! sudo AUTOSSH_PIDFILE=$pidfile $autossh -M 0 \
 	 -L ${device}:139:${smbhost}:139 \
 	 -L ${device}:445:${smbhost}:445 \
@@ -392,7 +402,7 @@ EOF
 # defined by the user, which might do something like knock.
 min=1
 function incf_min {
-    min=$(( $min + 1 ))
+    min=$(( $min + ${1-1} ))
     if [ "$(type -t mount_smb_timer)" = "function" ]; then
 	mount_smb_timer $min
     fi
@@ -426,13 +436,24 @@ function incf_min {
     start_tunnel_retry 5
     mount_shares
 
+    if [ "$debug" ]; then
+	timeout=60
+    else
+	timeout=600
+    fi
+
     while true; do
-	# wake up every 60 seconds to see if $socket exists
-	if read -t 60 foo; then
+	# wake up every once in a while to see if $socket exists
+	if read -t $timeout foo; then
 	    # User typed something
 	    break
 	else
-	    incf_min
+	    incf_min $(( $timeout / 10 ))
+	    
+	    if [ "$(type -t mount_smb_timer)" = "function" ]; then
+		mount_smb_timer "$min"
+	    fi
+	    
 	    # If the socket disappears that means the ssh that autossh
 	    # started died, due to a network outage or something similar.
 	    # Wait for it to come back.
@@ -450,6 +471,6 @@ function incf_min {
 	fi
     done
     
-    # the cleanup is done in the trap handler
+    # all cleanup is done in the trap handler
     exit
 }
