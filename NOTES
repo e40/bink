@@ -1,5 +1,15 @@
 Handy for testing network failures:
 
-# networksetup -setv4off Ethernet
+Get a list of devices:
+  # networksetup -listnetworkserviceorder
+
+then (likely) one of:
+  # name="Thunderbolt Ethernet"
+  # name="Ethernet"
+  # name="Wi-Fi"
+
 and
-# networksetup -setmanual Ethernet 192.168.0.6 255.255.255.0 192.168.0.1
+  # networksetup -setv4off "$name"
+and one of:
+  # networksetup -setmanual "$name" 192.168.0.6 255.255.255.0 192.168.0.1
+  # networksetup -setmanual "$name" 192.132.95.149 255.255.255.0 192.132.95.1

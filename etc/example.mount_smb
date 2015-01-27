@@ -3,27 +3,22 @@
 #debug=yes
 verbose=yes
 
+sshhost=freoncc
 workgroup=FRANZ
 noopen=yes
-sshhost=freoncc
 
 function maybe_knock {
     local temp
-    if temp=$(host freon.franz.com); then
-	if echo $temp | grep -q 192.132.95.35; then
-	    # internal network, no knock
-	    if [ "$debug" ]; then echo knock: internal: no knock needed; fi
+    if temp=$(host www.franz.com); then
+	if echo $temp | grep -q 192.132.95.20; then
+	    if [ "$debug" ]; then echo knock: internal: knock NOT needed; fi
 	else
-	    if [ "$debug" ]; then echo knock: external: knock needed; fi
-	    # The `knock' script takes care of making sure we
-	    # don't knock too often
-	    if [ "$debug" ]; then echo knock $sshhost; fi
+	    if [ "$debug" ]; then echo knock: external: knock $sshhost; fi
 	    knock $sshhost
 	fi
     else
 	if [ "$debug" ]; then echo knock: network down: undetermined; fi
 	# host failed, network is likely down, so do nothing
-	return 0
     fi
 }
 
