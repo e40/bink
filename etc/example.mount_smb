@@ -1,0 +1,18 @@
+#! /bin/bash
+
+#debug=yes
+verbose=yes
+
+workgroup=FRANZ
+noopen=yes
+sshhost=freoncc
+
+# The `knock' script takes care of making sure we don't knock too often
+function mount_smb_usersetup {
+    if [ "$debug" ]; then echo knock $sshhost; fi
+    knock $sshhost
+}
+function mount_smb_timer {
+    if [ "$debug" ]; then echo knock $sshhost; fi
+    knock $sshhost
+}
