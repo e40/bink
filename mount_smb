@@ -256,9 +256,8 @@ function start_tunnel {
     # To work around the above problem, we use AUTOSSH_PIDFILE and kill
     # it manually when the script exits.
     #
-    # CONSIDER: setting AUTOSSH_POLL=60 (600 is the default) so
-    #    so the ssh will come back quicker.
-
+    # TODO: consider setting AUTOSSH_POLL=60 (600 is the default) so
+    #       so the ssh will come back quicker.
     if ! sudo AUTOSSH_PIDFILE=$pidfile $autossh -M 0 \
 	 -L ${device}:139:${smbhost}:139 \
 	 -L ${device}:445:${smbhost}:445 \
@@ -457,6 +456,24 @@ function incf_min {
 	    # If the socket disappears that means the ssh that autossh
 	    # started died, due to a network outage or something similar.
 	    # Wait for it to come back.
+
+	    # TODO: for reasons unknown, sometimes the socket takes a
+	    #       really long time to reappear.  The other day there was
+	    #       a brief outage, but we looped for 3 hours before the
+	    #       socket reappeared, and by that time the volumes
+	    #       had been unmounted, so even though the reconnect happened
+	    #       it was useless.
+	    #
+	    #       A potential fix for this is sending a SIGUSR1 to autossh
+	    #       after some number of iterations.  This might bring back
+	    #       the connection fast enough to prevent the volume from
+	    #       being unmounted behind our back.
+	    #
+	    # NOTE: we could check for the condition described above,
+	    #       but we need to check for it using the "mount" program
+	    #       and not with "test -e ...", because the latter will
+	    #       cause a hang in the event the connection is down.
+	    
 	    ok_now=
 	    while [ ! -e "$socket" ]; do
 		verbose waiting for $socket to reappear...
