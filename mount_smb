@@ -469,8 +469,9 @@ function incf_min {
 	    #       the connection fast enough to prevent the volume from
 	    #       being unmounted behind our back.
 	    #
-	    # NOTE: we could check for the condition described above,
-	    #       but we need to check for it using the "mount" program
+	    # NOTE: we could check for the condition described above
+	    #       (volumes unmounted behind our back), but we need to
+	    #       check for it using the "mount" program
 	    #       and not with "test -e ...", because the latter will
 	    #       cause a hang in the event the connection is down.
 	    
