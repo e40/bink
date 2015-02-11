@@ -1,6 +1,10 @@
 #! /bin/bash
 # Script to knock, but not more often than a specific number of seconds
 # (so it's a no-op if we try and knock before that).
+#
+# NOTE: the flaw in this method is that if the firewall is rebooted or the
+#       rules cleared from the firewall, then we may need to knock before
+#       the time period is over.
 
 ###############################################################################
 # User settable parameters

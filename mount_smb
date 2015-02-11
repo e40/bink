@@ -2,7 +2,7 @@
 # On Mac OS X, mounts an SMB volume over an SSH tunnel.  It uses autossh
 # to insure the connection stays open, say, across sleeping a laptop.
 # For more info, see the usage below.
-#  
+#
 ###############################################################################
 # Defaults with command-line overrides
 
@@ -390,6 +390,34 @@ function mount_shares {
     announce
 }
 
+function check_shares {
+    local mountpoint
+    local share
+    
+    for mountpoint in $mountpoints; do
+	if mountedp $mountpoint; then
+	    continue
+	fi
+
+	verbose $mountpoint is no longer mounted
+
+	# Let's try and bring it back...
+	#  (We assume that the password originally given is still good.)
+
+	# extract $share from $mountpoint
+	share=$(echo $mountpoint | sed 's,/Volumes/.*-\(.*\)$,\1,')
+
+	if /sbin/mount_smbfs \
+	       "//${workgroup};${remoteuser}:${password}@${device}/${share}" \
+	       $mountpoint
+	then
+	    verbose successfully remounted $mountpoint
+	else
+	    errordie Could not remount $mountpoint
+	fi
+    done
+}
+
 function announce {
     cat <<EOF
 
@@ -404,6 +432,15 @@ function incf_min {
     min=$(( $min + ${1-1} ))
     if [ "$(type -t mount_smb_timer)" = "function" ]; then
 	mount_smb_timer $min
+    fi
+}
+
+function mountedp {
+    # return 0 if $1 is mounted, 1 otherwise
+    if mount | grep -q " on $1 "; then
+	return 0
+    else
+	return 1
     fi
 }
 
@@ -456,25 +493,15 @@ function incf_min {
 	    # If the socket disappears that means the ssh that autossh
 	    # started died, due to a network outage or something similar.
 	    # Wait for it to come back.
-
-	    # TODO: for reasons unknown, sometimes the socket takes a
-	    #       really long time to reappear.  The other day there was
-	    #       a brief outage, but we looped for 3 hours before the
-	    #       socket reappeared, and by that time the volumes
-	    #       had been unmounted, so even though the reconnect happened
-	    #       it was useless.
-	    #
-	    #       A potential fix for this is sending a SIGUSR1 to autossh
-	    #       after some number of iterations.  This might bring back
-	    #       the connection fast enough to prevent the volume from
-	    #       being unmounted behind our back.
-	    #
-	    # NOTE: we could check for the condition described above
-	    #       (volumes unmounted behind our back), but we need to
-	    #       check for it using the "mount" program
-	    #       and not with "test -e ...", because the latter will
-	    #       cause a hang in the event the connection is down.
 	    
+	    # NOTE: if the firewall is rebooted then we may need to
+	    #       knock sooner than we think.  In this case, the
+	    #       autossh-created file ($socket) will not reappear until
+	    #       we knock again.  I don't see a way around this, unless
+	    #       we want to try and knock after some period of time.
+	    #       Maybe we could ping the host to see if it's down, then
+	    #       up, and set a flag that we'll need to reknock?
+
 	    ok_now=
 	    while [ ! -e "$socket" ]; do
 		verbose waiting for $socket to reappear...
@@ -486,6 +513,12 @@ function incf_min {
 		verbose socket reappeared, all systems go
 		announce
 	    fi
+
+	    # Check that the volumes are still mounted; try to remount
+	    # if they are not.  Why they become unmounted is a mystery.
+	    # even when the tunnel is working, they sometimes just
+	    # get dismounted.
+	    check_shares
 	fi
     done
     
