@@ -253,6 +253,15 @@ select "Advanced Options..."
 EOF
 fi
 
+function ethernet_device_name {
+    networksetup -listallnetworkservices | grep Ethernet | head -1
+}
+
+ethernet="$(ethernet_device_name)"
+
+# This makes wake from sleep work better:
+sudo networksetup -setv6LinkLocal "$ethernet" 
+
 exit 0
 
 ###############################################################################
