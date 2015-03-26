@@ -126,10 +126,14 @@ d "Disable the warning when changing a file extension" \
 d "Disable window animations and Get Info animations" \
   com.apple.finder DisableAllAnimations -bool true
 
-# Set Desktop as the default location for new Finder windows
+# Set Applications as the default location for new Finder windows
+d "New Finder windows start in /Applications" \
+  com.apple.finder NewWindowTargetPath -string "file:///Applications/"
+
+d "Do not show recent tags" com.apple.finder ShowRecentTags -bool false
+
 # For other paths, use `PfLo` and `file:///full/path/here/`
-#defaults write com.apple.finder NewWindowTarget -string "PfDe"
-#defaults write com.apple.finder NewWindowTargetPath -string "file://${HOME}/Desktop/"
+#defaults write com.apple.finder NewWindowTarget -string "PfLo"
 
 d "Show all filename extensions in Finder" \
   NSGlobalDomain AppleShowAllExtensions -bool true
