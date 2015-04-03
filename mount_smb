@@ -117,34 +117,48 @@ is:
    --verbose        verbose
    --debug          debug
 
-In this script, two BASH functions have significance:
+Optional BASH function hooks for \$HOME/.mount_smb:
 
-If "mount_smb_post_mount" is defined, it is called 
-post-mount, with arguments these arguments:
+mount_smb_usersetup
+  If defined, it is called before the autossh is initiated, so any
+  setup required for ssh to the remote host can be done, such as
+  knocking.
 
-    mount_smb_post_mount "\$mountpoint" "\$smbhost" "\$share"
+mount_smb_autossh_failed
+  If defined, it is called after autossh fails to establish a
+  connection to the remote host.  It can be used, for example,
+  to forcibly knock.
 
-It can be used to do post-mount things, like displaying a particular
-share with the Finder.  For example:
-
-# When mounting share "john" on host "linuxhost", open the "incoming"
-# subdirectory in the Finder.
-function mount_smb_post_mount {
-    local mountpoint=\${1-}
-    local smbhost=\${2-}
-    local share=\${3-}
-    case "\$smbhost" in
-	linuxhost) [ "\$share" = "john" ] && open \$mountpoint/incoming ;;
-    esac
-}
-
-If "mount_smb_timer" is defined, it is called every minute post-mount with
-these arguments:
+mount_smb_timer
+  If defined, it is called every 10 minutes (every minute if --debug
+  is given) post-mount with these arguments:
 
     mount_smb_timer \$minutes_since_mount
 
-It can be used to open network access after a set period of time elapses,
-for example.
+  It can be used to open network access after a set period of time elapses,
+  for example.
+
+mount_smb_post_mount
+  If defined, it is called post-mount, with arguments these arguments:
+
+    mount_smb_post_mount "\$mountpoint" "\$smbhost" "\$share"
+
+  It can be used to do post-mount things, like displaying a particular
+  share with the Finder.  For example:
+
+  # When mounting share "john" on host "linuxhost", open the "incoming"
+  # subdirectory in the Finder.
+  function mount_smb_post_mount {
+      local mountpoint=\${1-}
+      local smbhost=\${2-}
+      local share=\${3-}
+      case "\$smbhost" in
+	  linuxhost) [ "\$share" = "john" ] && open \$mountpoint/incoming ;;
+      esac
+  }
+
+All of the above hooks are optional and are undefined unless defined by
+the user.
 EOF
     exit 1
 }
@@ -275,11 +289,9 @@ function start_tunnel {
 	return 1
     fi
 
-    trap "stop_tunnel_and_cleanup" 0
+    trap stop_tunnel_and_cleanup 0
 
-    #TEMP TEMP TEMP TEMP TEMP TEMP
-    # See if waiting more allows the tunnel to start, rather than iterating
-    # by calling this function multiple times
+    # Take a chance that waiting will cause the tunnel to appear.
     n=3
     while [ $n -gt 0 ]; do
 	if [ -e $socket ]; then
@@ -290,17 +302,22 @@ function start_tunnel {
 	fi
 	n=$(( $n - 1 ))
     done
+
     if [ ! -e $socket ]; then
 	verbose autossh did not create $socket file
-	verbose NOTE: this will likely leave an orphaned autossh running
 	device_down
+	if [ "$(type -t mount_smb_autossh_failed)" = "function" ]; then
+	    mount_smb_autossh_failed
+	fi
 	return 1
+    else
+	return 0
     fi
 }
 
 function start_tunnel_retry {
-    # try 5 times to start the tunnel
-    local n=${1-5}
+    [ "${1-}" ] || usage start_tunnel_retry should be given a count
+    local n=$1
     local status
     while [ $n -gt 0 ]; do
 	verbose starting tunnel
@@ -310,8 +327,9 @@ function start_tunnel_retry {
 	    status=1
 	else
 	    status=0
+	    # Our work here is done:
+	    break
 	fi
-	break
     done
     return $status
 }
@@ -407,6 +425,8 @@ function check_shares {
 	# extract $share from $mountpoint
 	share=$(echo $mountpoint | sed 's,/Volumes/.*-\(.*\)$,\1,')
 
+	mkdir -p $mountpoint
+	
 	if /sbin/mount_smbfs \
 	       "//${workgroup};${remoteuser}:${password}@${device}/${share}" \
 	       $mountpoint
@@ -469,7 +489,7 @@ function mountedp {
 	errordie Could not find device
     fi
 
-    start_tunnel_retry 5
+    start_tunnel_retry 3
     mount_shares
 
     if [ "$debug" ]; then
