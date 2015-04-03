@@ -24,9 +24,9 @@ mkdir -p $knockroot
 rc=$HOME/.knockrc
 [ -f $rc ] && source $rc
 
-: ${debug:=}
-function debug {
-    if [ -n "$debug" ]; then
+: ${verbose:=}
+function verbose {
+    if [ -n "$verbose" ]; then
 	echo "$@"
     fi
 }
@@ -37,8 +37,9 @@ function now {
 
 function usage {
     cat 1>&2 <<EOF
-Usage: knock [-f] hostname
+Usage: knock [-v] [-f] hostname
 
+-v :: be verbose
 -f :: force knock regardless of how long it's been since fwknop was called
 
 Knock, with fwknop, on "hostname", where "hostname" is the name
@@ -69,12 +70,12 @@ force=
 
 while test $# -gt 0; do
     case $1 in
-	--help)  usage ;;
-	-f)      force=$1 ;;
-	--debug) debug=$1 ;;
-	-*)      usage ;;
-	*)       [ $# -eq 1 ] || usage
-		 hostname=$1 ;;
+	--help) usage ;;
+	-f)     force=$1 ;;
+	-v)     verbose=$1 ;;
+	-*)     usage ;;
+	*)      [ $# -eq 1 ] || usage
+		hostname=$1 ;;
     esac
     shift
 done
@@ -109,7 +110,7 @@ if ! mkdir $lockdir > /dev/null 2>&1; then
 	    echo Warning: rmdir failed
 	fi
     else
-	debug another copy of this script is running, exiting
+	verbose another copy of this script is running, exiting
 	exit 0
     fi
 fi
@@ -118,19 +119,19 @@ trap "rmdir $lockdir" 0
 if [ -d $knockdir ]; then
     eval $(stat -s $knockdir)
     seconds_since_knock=$(( $(now) - $st_mtime ))
-    debug seconds_since_knock=$seconds_since_knock
+    verbose seconds_since_knock=$seconds_since_knock
 else
     seconds_since_knock=
 fi
 
 if [ -z "$seconds_since_knock" ]; then
-    debug initialize knockdir since it does not exist
+    verbose initialize knockdir since it does not exist
     mkdir $knockdir
 elif [ "$force" ]; then
     : # force the knock
 elif [ $seconds_since_knock -lt $knock_period_seconds ]; then
     left=$(( $knock_period_seconds - $seconds_since_knock ))
-    debug "not time to knock yet ($left more seconds)"
+    verbose "not time to knock yet ($left more seconds)"
     exit 0
 fi
 
