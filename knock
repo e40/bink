@@ -86,6 +86,10 @@ done
 
 [ "$hostname" ] || usage hostname not given
 
+if [ "$(type -t knock_user_seconds)" = "function" ]; then
+    knock_period_seconds=$(knock_user_seconds $hostname)
+fi
+
 # The modification time of this directory is use to record when we knock
 knockdir=$knockroot/knock.${hostname}
 
