@@ -93,14 +93,23 @@ if [ "$(type -t knock_preknock_hook)" = "function" ]; then
     knock_preknock_hook
 fi
 
+if [ "$(uname -s)" = "Darwin" ]; then
+    macosx=xxx
+else
+    macosx=
+fi
+
 if ! mkdir $lockdir > /dev/null 2>&1; then
     # Couldn't make it.  Make sure the lock isn't older than a
     # minute.
 
-    eval $(stat -s $lockdir)
-    now=
-    since_created=$(( $(now) - $st_ctime ))
-    if [ $since_created -gt 60 ]; then
+    if [ "$macosx" ]; then
+	eval $(stat -s $lockdir)
+	since_modified=$(( $(now) - $st_mtime ))
+    else
+	since_modified=$(( $(now) - $(date +%s -r $lockdir) ))
+    fi
+    if [ $since_modified -gt 60 ]; then
 	# this script shouldn't take more than a minute to run, so
 	# tell the caller we have a dead lock and remove it.
 	## for reasons I don't understand, Michelle often has dead locks
@@ -117,8 +126,12 @@ fi
 trap "rmdir $lockdir" 0
 
 if [ -d $knockdir ]; then
-    eval $(stat -s $knockdir)
-    seconds_since_knock=$(( $(now) - $st_mtime ))
+    if [ "$macosx" ]; then
+	eval $(stat -s $knockdir)
+	seconds_since_knock=$(( $(now) - $st_mtime ))
+    else
+	seconds_since_knock=$(( $(now) - $(date +%s -r $knockdir) ))
+    fi
     verbose seconds_since_knock=$seconds_since_knock
 else
     seconds_since_knock=
@@ -140,6 +153,7 @@ echo $(date): time to knock for $hostname
 if [ "$(type -t knock_user_knock)" = "function" ]; then
     knock_user_knock "$hostname"
 else
+    verbose fwknop -n "$hostname"
     fwknop -n "$hostname"
 fi
 
