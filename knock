@@ -24,9 +24,11 @@ mkdir -p $knockroot
 rc=$HOME/.knockrc
 [ -f $rc ] && source $rc
 
+: ${quiet:=}
+
 : ${verbose:=}
 function verbose {
-    if [ -n "$verbose" ]; then
+    if [ "$verbose" ]; then
 	echo "$@"
     fi
 }
@@ -37,9 +39,10 @@ function now {
 
 function usage {
     cat 1>&2 <<EOF
-Usage: knock [-v] [-f] hostname
+Usage: knock [-q] [-v] [-f] hostname
 
 -v :: be verbose
+-q :: be quiet
 -f :: force knock regardless of how long it's been since fwknop was called
 
 Knock, with fwknop, on "hostname", where "hostname" is the name
@@ -73,6 +76,7 @@ while test $# -gt 0; do
 	--help) usage ;;
 	-f)     force=$1 ;;
 	-v)     verbose=$1 ;;
+	-q)     quiet=$1 ;;
 	-*)     usage ;;
 	*)      [ $# -eq 1 ] || usage
 		hostname=$1 ;;
@@ -148,7 +152,7 @@ elif [ $seconds_since_knock -lt $knock_period_seconds ]; then
     exit 0
 fi
 
-echo $(date): time to knock for $hostname
+[ "$quiet" ] || echo $(date): time to knock for $hostname
 
 if [ "$(type -t knock_user_knock)" = "function" ]; then
     knock_user_knock "$hostname"
