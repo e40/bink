@@ -21,8 +21,8 @@ set -eu
 
 mkdir -p $knockroot
 
-rc=$HOME/.knockrc
-[ -f $rc ] && source $rc
+rc="$HOME/.knockrc"
+[ -f "$rc" ] && source "$rc"
 
 : ${quiet:=}
 
