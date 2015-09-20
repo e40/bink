@@ -194,6 +194,38 @@ d "Enable Debug Menu in the Mac App Store" \
 
 d "Chrome: Use the system-native print preview dialog" \
   com.google.Chrome DisablePrintPreview -bool true
+[ "$restart_finder" ] && killall Finder
+
+# autossh for mount_smb
+# git because it has security fixes over the Apple one
+# coreutils because ... something needed for scripting?
+# fwknop-client because I need to knock
+# wget because it's handy
+sudo port install autossh bash coreutils git fwknop-client wget
+
+# This should be the default on Mac OS X.  It prevents all processes
+# from getting sudo privs.
+if ! sudo grep tty_tickets /etc/sudoers > /dev/null; then
+    cat<<EOF
+NOTE: add "Defaults tty_tickets" to /etc/sudoers
+EOF
+fi
+
+shell="$(dscl . -read /Users/$USER UserShell)"
+if [ "$shell" != "UserShell: /opt/local/bin/bash" ]; then
+    cat <<EOF 
+SHELL=$SHELL and not /opt/local/bin/bash.
+Change it in System Preferences, Users & Groups, right-click on user and
+select "Advanced Options..."
+EOF
+fi
+
+./macosx_rm_cas.sh
+
+exit 0
+
+###############################################################################
+## rest deemed too dangerous for new Mac Pro
 
 if [ -e /Private/var/vm/sleepimage ]; then
     echo "Remove the sleep image file to save disk space"
@@ -239,24 +271,6 @@ elif [ "$model" == "MacPro" ]; then
     xpmset "DO NOT wake on magic packet" -a womp 0
 fi
 
-[ "$restart_finder" ] && killall Finder
-
-# autossh for mount_smb
-# git because it has security fixes over the Apple one
-# coreutils because ... something needed for scripting?
-# fwknop-client because I need to knock
-# wget because it's handy
-sudo port install autossh bash coreutils git fwknop-client wget
-
-shell="$(dscl . -read /Users/$USER UserShell)"
-if [ "$shell" != "UserShell: /opt/local/bin/bash" ]; then
-    cat <<EOF 
-SHELL=$SHELL and not /opt/local/bin/bash.
-Change it in System Preferences, Users & Groups, right-click on user and
-select "Advanced Options..."
-EOF
-fi
-
 function ethernet_device_name {
     networksetup -listallnetworkservices | grep Ethernet | head -1
 }
@@ -265,14 +279,6 @@ ethernet="$(ethernet_device_name)"
 
 # This makes wake from sleep work better:
 sudo networksetup -setv6LinkLocal "$ethernet" 
-
-# This should be the default on Mac OS X.  It prevents all processes
-# from getting sudo privs.
-if ! sudo grep tty_tickets /etc/sudoers > /dev/null; then
-    cat<<EOF
-NOTE: add "Defaults tty_tickets" to /etc/sudoers
-EOF
-fi
 
 exit 0
 
