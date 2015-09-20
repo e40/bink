@@ -132,6 +132,12 @@ d "New Finder windows start in /Applications" \
 
 d "Do not show recent tags" com.apple.finder ShowRecentTags -bool false
 
+# Too annoying
+d "Do NOT show hidden files" com.apple.finder AppleShowAllFiles -bool false
+
+# So hidden files here:
+chflags nohidden ~/Library
+
 # For other paths, use `PfLo` and `file:///full/path/here/`
 #defaults write com.apple.finder NewWindowTarget -string "PfLo"
 
@@ -178,6 +184,9 @@ d "Turn off keyboard illumination when not used for 5 minutes" \
 d "Terminal: copy attributes from Basic profile" \
   com.apple.Terminal CopyAttributesProfile Basic
 
+d "Disable iCloud save default" \
+  NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
+
 d "Disable smart quotes" \
   NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
 
@@ -203,6 +212,14 @@ d "Chrome: Use the system-native print preview dialog" \
 # wget because it's handy
 sudo port install autossh bash coreutils git fwknop-client wget
 
+## currently broken
+## bug here: https://trac.macports.org/ticket/47168
+##    can workaround with Xcode 6.4
+#sudo port install wireshark
+
+# because the built-in versions are insecure:
+sudo port install openssl curl
+
 # This should be the default on Mac OS X.  It prevents all processes
 # from getting sudo privs.
 if ! sudo grep tty_tickets /etc/sudoers > /dev/null; then
@@ -220,6 +237,15 @@ select "Advanced Options..."
 EOF
 fi
 
+# Disable captive portal window
+# https://web.archive.org/web/20130407200745/http://www.divertednetworks.net/apple-captiveportal.html
+capnetsupsettings=/Library/Preferences/SystemConfiguration/CaptiveNetworkSupport/Settings.plist
+if grep -q -F apple.com $capnetsupsettings; then
+    echo Fixing $capnetsupsettings...
+    sudo sed -i .orig 's/\.apple\.com/\.localhost/g' $capnetsupsettings
+fi
+
+# Last, remove bogus CAs
 ./macosx_rm_cas.sh
 
 exit 0
@@ -297,4 +323,3 @@ launchctl unload -w /System/Library/LaunchAgents/com.apple.notificationcenterui.
 # Perhaps run as a root cron job??
 echo "Disabling TM local snapshots"
 hash tmutil &> /dev/null && sudo tmutil disablelocal
-
