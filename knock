@@ -5,6 +5,9 @@
 # NOTE: the flaw in this method is that if the firewall is rebooted or the
 #       rules cleared from the firewall, then we may need to knock before
 #       the time period is over.
+#
+# TODO:
+# - make knock period configurable
 
 ###############################################################################
 # User settable parameters
