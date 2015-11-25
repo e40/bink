@@ -1,0 +1,50 @@
+#! /bin/bash
+
+set -eu
+set -o pipefail
+
+cd="/Applications/CocoaDialog.app/Contents/MacOS/CocoaDialog"
+
+policysleep=1
+policyawake=2
+
+function get_current_policy {
+    local val=$(pmset -g  | grep ' sleep ' | sed -e 's/sleep//')
+    if [ $val -eq 0 ]; then
+	echo $policyawake
+    else
+	echo $policysleep
+    fi
+}
+
+function print_current_policy {
+    if [ $(get_current_policy) -eq $policysleep ]; then
+	echo current policy is sleep
+    else
+	echo current policy is awake
+    fi
+}
+
+print_current_policy
+
+function wait_for {
+    # don't use --float since it's annoying
+    if [ $($cd msgbox --icon info --string-output --button1 Ok --button3 Exit --text "$*") = Exit ]; then
+	exit 0
+    fi
+}
+
+while true; do
+    policy="$(get_current_policy)"
+    #print_current_policy
+    if [ $policy -eq $policysleep ]; then
+	wait_for turn on "never sleep mode"
+	prevent_computer_sleep
+    elif [ $policy -eq $policyawake ]; then
+	wait_for turn on "sleep mode"
+	allow_computer_sleep
+    else
+	$cd ok-msgbox --no-cancel --text "Bad value for policy: $policy"
+	exit 1
+    fi
+done

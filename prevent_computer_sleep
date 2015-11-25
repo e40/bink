@@ -1,0 +1,6 @@
+#! /bin/bash
+# checks the
+# "Prevent computer from sleeping automatically when display is off" setting
+# in the Energy Saver settings.
+
+sudo pmset sleep 0
