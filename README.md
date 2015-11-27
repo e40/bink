@@ -5,6 +5,7 @@ home.  I hope you enjoy them.
 
 | **Script**    | **Description** |
 | :------------ | :-------------- |
+| diffdirs      | diff two directories, but not their contents |
 | knock         | knock but no more than needed |
 | m             | mail result of evaluating args to an email address |
 | macosx_tweaks | automate change various Mac OS X settings |

@@ -1,0 +1,15 @@
+#! /bin/bash
+
+lsargs=
+
+while test $# -gt 0; do
+    case $1 in
+	-r) lsargs="$lsargs -R" ;; 
+	-*) lsargs="$lsargs $1" ;;
+	*)  break
+	    ;;
+    esac
+    shift
+done
+
+diff <(cd $1; ls $lsargs -1 .) <(cd $2; ls $lsargs -1 .)
