@@ -1,0 +1,20 @@
+#! /bin/bash
+
+pidfile=xxx
+if [ "${1-}" ]; then
+    seconds=$1
+    # in this case, we don't need the pid file
+    pidfile=
+else
+    # no args, default to 24 hours
+    seconds=$(( 3600 * 24 ))
+fi
+
+nohup caffeinate -s -t $seconds \
+    > /dev/null 2> /dev/null \
+    < /dev/null &
+pid=$!
+if [ "$pidfile" ]; then
+    mkdir -p $HOME/tmp
+    echo $pid > $HOME/tmp/caffeinate.pid
+fi

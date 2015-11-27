@@ -1,0 +1,25 @@
+#! /bin/bash
+
+if [ ! -f $HOME/tmp/caffeinate.pid ]; then
+   echo $(basename $0): $HOME/tmp/caffeinate.pid does not exist
+   exit 1
+fi
+
+pid=$(cat $HOME/tmp/caffeinate.pid)
+
+echo $0: looking for pid $pid...
+
+for p in $(pgrep caffeinate); do
+    if [ $p -eq $pid ]; then
+	# matches, kill it
+	echo $0: found pid, killing it
+	kill -TERM $pid
+	exit 0
+    else
+	echo $0: skipping pid $p...
+    fi
+done
+
+echo $0: could not find pid, fail
+# No match
+exit 1

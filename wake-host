@@ -1,0 +1,127 @@
+#! /bin/bash
+
+usage="[--ssh-identity identity-file] host mac-address
+
+wake 'host' with MAC address 'mac-address', using SSH identity given by
+'identity-file'.
+
+SSH is used to test that the host is up after trying to wake it."
+
+# For Mac's, ping cannot be used to see if the host is up, because the 
+# machine responds to pings even when asleep.
+
+macprefixes="/usr/share/nmap/nmap-mac-prefixes"
+
+set -eu
+set -o pipefail
+
+self="${BASH_SOURCE[0]}"
+SCRIPTDIR=$(cd "$(dirname "$self")" && pwd)
+argv0="$(basename "$self")"
+
+function usage {
+    [ "${*-}" ] && echo "$argv0: Error: $*" 1>&2
+    echo "Usage: $argv0: $usage" 1>&2
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$argv0: Error: $*" 1>&2
+    exit 1
+}
+
+for cmd in ether-wake start_caffeinate_daemon; do
+    if ! type -p $cmd > /dev/null; then
+	errordie command $cmd not found
+    fi
+done
+
+debug=
+
+function d {
+    # "echo" and optionally execute the arguments to this function
+    # if --debug is given to the main script, then just echo the
+    # arguments.
+    #
+    # This can be used to run scripts with --debug so you can see what
+    # commands they would execute.  This is good for script that do
+    # possibly dangerous things.  Or operations which would take a
+    # long time to execute and you want to make sure everything is OK before
+    # trying it out.
+
+    if [ "$debug" ]; then
+	echo "would do: $*"
+    else
+	echo "+ $*"
+        "$@"
+    fi
+}
+
+host=
+mac=
+sshid=
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --debug) debug=$1 ;;
+        --ssh-identity)
+	    [ $# -lt 2 ] && usage companion to --ssh-identity missing
+	    shift
+	    sshid=$1
+	    ;;
+        -*) usage ;;
+        *)  [ $# -ne 2 ] && usage missing arguments
+            host=$1
+	    mac=$2
+            break
+            ;;
+    esac
+    shift
+done
+
+if [ ! -f "$macprefixes" ]; then
+    echo $argv0: $macprefixes does not exist, install nmap
+    exit 1
+fi
+
+ar=($mac)
+prefix="$(echo ${ar[0]:0:8} | sed 's/://g')"
+apple=
+if grep -i $prefix $macprefixes | grep -iq apple; then
+    apple=xxx
+fi
+
+if [ -e /sys/class/net/lan ]; then
+    dev=lan
+elif dev=$(/sbin/route -n | grep "^0.0.0.0" | rev | cut -d' ' -f1 | rev); then
+    :
+else
+    echo $argv0: could not find ethernet device
+    exit 1
+fi
+
+ssh=$(which ssh)
+[ "$sshid" ] && ssh="$ssh -i $sshid"
+
+echo $0: using device $dev and MAC $mac
+sudo ether-wake -i $dev $mac
+sleep 30
+if $ssh $host /bin/date > /dev/null; then
+    echo $0: successfully woke $host
+
+    if [ "$apple" ]; then
+	# Keep the host awake for 5 minutes, so whatever we wanted to do
+	# has time to start
+	seconds=$(( 5 * 60 ))
+	echo $0: start caffeinate daemon for $seconds seconds
+	if ! $ssh $host start_caffeinate_daemon $seconds; then
+	    echo $0: failed to start caffeinate daemon
+	    exit 1
+	else
+	    exit 0
+	fi
+    fi
+else
+    echo $0: could not wake $host
+    exit 1
+fi
