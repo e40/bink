@@ -1,4 +1,7 @@
 #! /bin/bash
+# Kill the caffeinate daemon started by start_caffeinate_daemon, being
+# careful to kill the one it started and not any others which may be
+# running.
 
 if [ ! -f $HOME/tmp/caffeinate.pid ]; then
    echo $(basename $0): $HOME/tmp/caffeinate.pid does not exist

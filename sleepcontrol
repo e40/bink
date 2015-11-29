@@ -1,4 +1,9 @@
 #! /bin/bash
+#
+# This proof of concept isn't useful because the dialogs are on top of
+# other windows.
+#
+# pre-requisites: cocoaDialog
 
 set -eu
 set -o pipefail
