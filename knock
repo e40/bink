@@ -136,13 +136,21 @@ if ! mkdir $lockdir > /dev/null 2>&1; then
 fi
 trap "rmdir $lockdir" 0
 
-if [ -d $knockdir ]; then
-    if [ "$macosx" ]; then
-	eval $(stat -s $knockdir)
-	seconds_since_knock=$(( $(now) - $st_mtime ))
+if [ "$(uname -s)" = "Darwin" ]; then
+    if [ -x /opt/local/bin/gstat ]; then
+	stat=/opt/local/bin/gstat
     else
-	seconds_since_knock=$(( $(now) - $(date +%s -r $knockdir) ))
+	errordie "need an updated 'stat': install macports coreutils"
     fi
+elif [ -x /usr/bin/stat ]; then
+    stat=/usr/bin/stat
+else
+    errordie "cannot find 'stat' program"
+fi
+
+if [ -d $knockdir ]; then
+    st_mtime=$($stat --format=%Y $knockdir)
+    seconds_since_knock=$(( $(now) - $st_mtime ))
     verbose seconds_since_knock=$seconds_since_knock
 else
     seconds_since_knock=

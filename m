@@ -1,4 +1,6 @@
 #! /bin/bash
+# Usage: m command
+#  the output of command is mailed to the email address in ~/.alert.email
 
 set -eu
 
@@ -9,7 +11,7 @@ if [ ! -f $alert ]; then
     exit 1
 fi
 
-TO=$(cat $alert)
+TO="$(cat $alert)"
 
 logfile=/tmp/temp$$
 rm -f $logfile
@@ -23,7 +25,7 @@ function send_report {
     rm -f $logfile
 }
 
-trap send_report 0
+trap send_report EXIT
 
 if "$@"; then
     status=SUCCESS
