@@ -28,7 +28,7 @@
 : ${sshconfig:=$HOME/.ssh/config}
 
 # The SSH identity to use
-: ${sshid:=$HOME/.ssh/id_dsa}
+: ${sshid:=$HOME/.ssh/id_rsa}
 
 # If non-null, do not open a Finder window post mount
 : ${noopen:=}
