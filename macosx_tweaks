@@ -215,11 +215,9 @@ d "Chrome: Use the system-native print preview dialog" \
 # wget because it's handy
 sudo port install autossh bash coreutils git fwknop-client wget
 
-## currently broken
-## bug here: https://trac.macports.org/ticket/47168
-##    can workaround with Xcode 6.4
-## fixed in Xcode 7
-sudo port install wireshark
+## don't install unless really necessary, since it pulls
+## in a LOT of stuff and takes forever.
+#sudo port install wireshark
 
 # because the built-in versions are insecure:
 sudo port install openssl curl
