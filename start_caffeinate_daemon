@@ -9,8 +9,8 @@ if [ "${1-}" ]; then
     # in this case, we don't need the pid file
     pidfile=
 else
-    # no args, default to 24 hours
-    seconds=$(( 3600 * 24 ))
+    # no args, default to 1 hour
+    seconds=3600
 fi
 
 nohup caffeinate -s -t $seconds \
