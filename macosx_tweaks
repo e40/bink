@@ -208,6 +208,9 @@ d "Chrome: Use the system-native print preview dialog" \
   com.google.Chrome DisablePrintPreview -bool true
 [ "$restart_finder" ] && killall Finder
 
+# Because the macOS version is old
+sudo port install ssh
+
 # autossh for mount_smb
 # git because it has security fixes over the Apple one
 # coreutils because ... something needed for scripting?
