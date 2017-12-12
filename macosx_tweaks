@@ -232,6 +232,9 @@ sudo port install gsed
 # because the built-in versions are insecure:
 sudo port install openssl curl
 
+# https://github.com/koalaman/shellcheck
+sudo port install shellcheck
+
 # This should be the default on Mac OS X.  It prevents all processes
 # from getting sudo privs.
 if ! sudo grep tty_tickets /etc/sudoers > /dev/null; then
