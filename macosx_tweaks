@@ -184,6 +184,9 @@ d "Prevent TM from prompting to use new drives as backup volumes" \
 d "Turn off keyboard illumination when not used for 5 minutes" \
   com.apple.BezelServices kDimTime -int 300
 
+d "InitialKeyRepeat" NSGlobalDomain InitialKeyRepeat -int 35
+d "KeyRepeat" NSGlobalDomain KeyRepeat -int 2
+
 d "Terminal: copy attributes from Basic profile" \
   com.apple.Terminal CopyAttributesProfile Basic
 
@@ -216,11 +219,15 @@ sudo port install ssh
 # coreutils because ... something needed for scripting?
 # fwknop-client because I need to knock
 # wget because it's handy
-sudo port install autossh bash coreutils git fwknop-client wget
+sudo port install autossh bash coreutils git fwknop-client wget openssh
 
 ## don't install unless really necessary, since it pulls
 ## in a LOT of stuff and takes forever.
 #sudo port install wireshark
+
+# needed by disktest.sh, generally a better sed, since
+# it has the -r flag (extended regex's)
+sudo port install gsed
 
 # because the built-in versions are insecure:
 sudo port install openssl curl

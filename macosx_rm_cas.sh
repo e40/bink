@@ -1,12 +1,12 @@
 #! /bin/bash
 # from
-#  https://github.com/drduh/OS-X-Yosemite-Security-and-Privacy-Guide
+#  https://github.com/drduh/macOS-Security-and-Privacy-Guide
 
 # These may be updated or re-added during system updates
 
 function remove {
     echo "Removing ${2}"
-    sudo /usr/bin/security delete-certificate \
+    sudo /usr/bin/security -q delete-certificate \
 	 -t -Z $1 \
 	 /System/Library/Keychains/SystemRootCertificates.keychain
 }
