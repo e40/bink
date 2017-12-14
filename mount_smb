@@ -377,7 +377,9 @@ function mount_shares {
     set_password
     
     for share in $shares; do
-	mountpoint="/Volumes/$smbhost-$share"
+	# Starting with Sierra, users do not have permission to create
+	# directories in /Volumes/, so use /var/tmp/.
+	mountpoint="/var/tmp/$USER-$smbhost-$share"
 	mountpoints="$mountpoints $mountpoint"
 
 	mkdir -p $mountpoint
