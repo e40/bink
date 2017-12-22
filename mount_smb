@@ -505,6 +505,7 @@ function mountedp {
     start_tunnel_retry 3
     mount_shares
 
+    # Set timeout (in seconds) for our periodic checks.
     if [ "$debug" ]; then
 	timeout=60
 	debug timeout=$timeout
@@ -518,7 +519,7 @@ function mountedp {
 	    debug User typed something...
 	    break
 	else
-	    incf_min $(( $timeout / 10 ))
+	    incf_min $(( timeout / 60 ))
 	    
 	    if [ "$(type -t mount_smb_timer)" = "function" ]; then
 		debug Calling mount_smb_timer "$min"...
@@ -541,7 +542,7 @@ function mountedp {
 	    while [ ! -e "$socket" ]; do
 		verbose waiting for $socket to reappear...
 		sleep 60
-		incf_min
+		incf_min 1
 		ok_now=xxx
 	    done
 	    if [ "$ok_now" ]; then
