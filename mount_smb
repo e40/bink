@@ -183,9 +183,6 @@ function verbose {
 
 function debug {
     # Use a brief date format
-#BASH BUG ALERT: you cannot use the following form, as it causes
-#BASH to exit (due to -e).  Bug reported to bug-bash@gnu.org.
-#    [ "$debug" ] && echo "$(date "+%Y-%m-%d %H:%M:%S"): $@"
     if [ "$debug" ]; then
 	echo "$(date "+%Y-%m-%d %H:%M:%S"): $@"
     fi
