@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 # On Mac OS X, mounts an SMB volume over an SSH tunnel.  It uses autossh
 # to insure the connection stays open, say, across sleeping a laptop.
 # For more info, see the usage below.
@@ -183,7 +183,12 @@ function verbose {
 
 function debug {
     # Use a brief date format
-    [ "$debug" ] && echo "$(date "+%Y-%m-%d %H:%M:%S"): $@"
+#BASH BUG ALERT: you cannot use the following form, as it causes
+#BASH to exit (due to -e).  Bug reported to bug-bash@gnu.org.
+#    [ "$debug" ] && echo "$(date "+%Y-%m-%d %H:%M:%S"): $@"
+    if [ "$debug" ]; then
+	echo "$(date "+%Y-%m-%d %H:%M:%S"): $@"
+    fi
 }
 
 while test $# -gt 0; do
@@ -318,7 +323,9 @@ function start_tunnel {
 	verbose autossh did not create $socket file
 	device_down
 	if [ "$(type -t mount_smb_autossh_failed)" = "function" ]; then
-	    mount_smb_autossh_failed
+	    if ! mount_smb_autossh_failed; then
+		verbose NOTE: mount_smb_autossh_failed failed
+	    fi
 	fi
 	return 1
     else
@@ -346,10 +353,11 @@ function start_tunnel_retry {
 }
 
 function stop_tunnel_and_cleanup {
+    verbose exiting from trap, stop_tunnel_and_cleanup
     for mountpoint in $mountpoints; do
 	# can't test the directory's existence the standard way because
 	# this will cause the script to hang.  Use the `mount' command.
-	if mount | grep -q $mountpoint; then
+	if mountedp $mountpoint; then
 	    verbose $mountpoint is mounted
 	    if umount $mountpoint; then
 		verbose $mountpoint unmounted
@@ -407,7 +415,9 @@ function mount_shares {
 	# It can be used to do post-mount things, like displaying a particular
 	# share with the Finder.
 	if [ "$(type -t mount_smb_post_mount)" = "function" ]; then
-	    mount_smb_post_mount "$mountpoint" "$smbhost" "$share"
+	    if ! mount_smb_post_mount "$mountpoint" "$smbhost" "$share"; then
+		verbose NOTE: mount_smb_post_mount failed
+	    fi
 	elif [ "$noopen" ]; then
 	    : # do nothing
 	else
@@ -464,7 +474,9 @@ min=1
 function incf_min {
     min=$(( $min + ${1-1} ))
     if [ "$(type -t mount_smb_timer)" = "function" ]; then
-	mount_smb_timer $min
+	if ! mount_smb_timer $min; then
+	    verbose "NOTE: mount_smb_timer failed [1]"
+	fi
     fi
 }
 
@@ -483,7 +495,9 @@ function mountedp {
 # modified after it starts it won't cause problems.
 {
     if [ "$(type -t mount_smb_usersetup)" = "function" ]; then
-	mount_smb_usersetup
+	if ! mount_smb_usersetup; then
+	    verbose NOTE: mount_smb_usersetup failed
+	fi
     fi
 
     # This file is removed by ssh once the control socket is shutdown
@@ -522,8 +536,10 @@ function mountedp {
 	    incf_min $(( timeout / 60 ))
 	    
 	    if [ "$(type -t mount_smb_timer)" = "function" ]; then
-		debug Calling mount_smb_timer "$min"...
-		mount_smb_timer "$min"
+		debug Calling mount_smb_timer $min...
+		if ! mount_smb_timer "$min"; then
+		    verbose "NOTE: mount_smb_timer failed [2]"
+		fi
 	    fi
 	    
 	    # If the socket disappears that means the ssh that autossh
