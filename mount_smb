@@ -2,18 +2,16 @@
 # On Mac OS X, mounts an SMB volume over an SSH tunnel.  It uses autossh
 # to insure the connection stays open, say, across sleeping a laptop.
 # For more info, see the usage below.
-#
-
-# Starting with Sierra, users do not have permission to create
-# directories in /Volumes/, so use /var/tmp/.
-mountprefix="/var/tmp/$USER-"
-#mountprefix="/Volumes/"
 
 ###############################################################################
 # Defaults with command-line overrides
 
 # Initialize defaults from init file, if there is one:
 [ -f $HOME/.mount_smb ] && source $HOME/.mount_smb
+
+# Starting with macOS Sierra, users do not have permission to create
+# directories in /Volumes/, so use /var/tmp/.
+: ${mountprefix:="/var/tmp/${USER}-"}
 
 # The host to which we connect to create the tunnel:
 : ${sshhost:=}
@@ -45,20 +43,27 @@ mountprefix="/var/tmp/$USER-"
 # If non-null, be debuggy
 : ${debug:=}
 
+# The place for the pidfile
+: ${pidfileprefix:="/tmp/autosshpid"}
+
 ###############################################################################
 set -eu
 
-pidfileprefix="/tmp/autosshpid"
-
 function errordie {
-    echo "Error: $*" 1>&2
+    [  "${*-}" ] && echo "Error: $*" 1>&2
     exit 1
 }
 
-autossh="$(type -p autossh)" || errordie autossh: command not found
-ssh="$(type -p ssh)" || errordie ssh: command not found
-removepidfile="$(type -p removepidfile)" ||
-    errordie removepidfile: command not found
+function command_exists_p {
+    local v
+    v="$(type -p $1)" || errordie $1: command not found
+    echo $v
+    return 0
+}
+
+autossh="$(command_exists_p autossh)"
+ssh="$(command_exists_p ssh)"
+removepidfile="$(command_exists_p removepidfile)"
 
 function usage {
     cat 1>&2 <<EOF
@@ -169,23 +174,19 @@ EOF
     exit 1
 }
 
-function errordie {
-    if test -n "${*-}"; then
-	echo "Error: $*" 1>&2
-    fi
-    exit 1
-}
+# errordie moved up, since it's needed there
 
 function verbose {
     # Use a brief date format
     [ "$verbose" ] && echo "$(date "+%Y-%m-%d %H:%M:%S"): $@"
+    return 0
 }
 
 function debug {
     # Use a brief date format
-    if [ "$debug" ]; then
-	echo "$(date "+%Y-%m-%d %H:%M:%S"): $@"
-    fi
+    [ "$debug" ] && echo "$(date "+%Y-%m-%d %H:%M:%S"): $@"
+    # Set the return value for this function
+    return 0
 }
 
 while test $# -gt 0; do
