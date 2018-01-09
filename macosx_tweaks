@@ -257,7 +257,7 @@ fi
 capnetsupsettings=/Library/Preferences/SystemConfiguration/CaptiveNetworkSupport/Settings.plist
 if grep -q -F apple.com $capnetsupsettings; then
     echo Fixing $capnetsupsettings...
-    sudo sed -i .orig 's/\.apple\.com/\.localhost/g' $capnetsupsettings
+    sudo gsed -i.orig 's/\.apple\.com/\.localhost/g' $capnetsupsettings
 fi
 
 # Last, remove bogus CAs
