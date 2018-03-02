@@ -399,7 +399,7 @@ function mount_shares {
 
 	mkdir -p $mountpoint
 
-	while ! /sbin/mount_smbfs \
+	while ! /sbin/mount -t smbfs \
 		"//${workgroup};${remoteuser}:${password}@${device}/${share}" \
 		$mountpoint
 	do
