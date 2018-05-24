@@ -71,6 +71,18 @@ function errordie {
     exit 1
 }
 
+if [ "$(uname -s)" = "Darwin" ]; then
+    if [ -x /opt/local/bin/gstat ]; then
+	stat=/opt/local/bin/gstat
+    else
+	errordie "need an updated 'stat': install macports coreutils"
+    fi
+elif [ -x /usr/bin/stat ]; then
+    stat=/usr/bin/stat
+else
+    errordie "cannot find 'stat' program"
+fi
+
 hostname=
 force=
 
@@ -114,12 +126,8 @@ if ! mkdir $lockdir > /dev/null 2>&1; then
     # Couldn't make it.  Make sure the lock isn't older than a
     # minute.
 
-    if [ "$macosx" ]; then
-	eval $(stat -s $lockdir)
-	since_modified=$(( $(now) - $st_mtime ))
-    else
-	since_modified=$(( $(now) - $(date +%s -r $lockdir) ))
-    fi
+    st_mtime=$($stat --format=%Y $lockdir)
+    since_modified=$(( $(now) - $st_mtime ))
     if [ $since_modified -gt 60 ]; then
 	# this script shouldn't take more than a minute to run, so
 	# tell the caller we have a dead lock and remove it.
@@ -135,18 +143,6 @@ if ! mkdir $lockdir > /dev/null 2>&1; then
     fi
 fi
 trap "rmdir $lockdir" 0
-
-if [ "$(uname -s)" = "Darwin" ]; then
-    if [ -x /opt/local/bin/gstat ]; then
-	stat=/opt/local/bin/gstat
-    else
-	errordie "need an updated 'stat': install macports coreutils"
-    fi
-elif [ -x /usr/bin/stat ]; then
-    stat=/usr/bin/stat
-else
-    errordie "cannot find 'stat' program"
-fi
 
 if [ -d $knockdir ]; then
     st_mtime=$($stat --format=%Y $knockdir)
