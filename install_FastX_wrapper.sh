@@ -33,7 +33,7 @@ function die {
 [ -x "$lsregister" ] || die cannot find lsregister
 
 path="$appdir/Contents/MacOS"
-script="$path/FastX.sh"
+script="$path/${1-FastX.sh}"
 plist="$appdir/Contents/Info.plist"
 
 wraptmp=/tmp/tempA$$
@@ -44,7 +44,9 @@ trap "/bin/rm -f $wraptmp $plisttmp" 0
 cat > $wraptmp <<EOF
 #! /usr/bin/env bash
 
-[ -f "$agentinfo" ] && source "$agentinfo"
+if [ "\${FASTX_DO_AGENT-}" ] && [ -f "$agentinfo" ]; then
+    source "$agentinfo"
+fi
 
 logger "$path/FastX"
 
