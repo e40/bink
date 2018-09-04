@@ -211,29 +211,31 @@ d "Chrome: Use the system-native print preview dialog" \
   com.google.Chrome DisablePrintPreview -bool true
 [ "$restart_finder" ] && killall Finder
 
+port="port -N"
+
 # Because the macOS version is old
-sudo port install openssh
+sudo $port install openssh
 
 # autossh for mount_smb
 # git because it has security fixes over the Apple one
 # coreutils because ... something needed for scripting?
 # fwknop-client because I need to knock
 # wget because it's handy
-sudo port install autossh bash coreutils git fwknop-client wget
+sudo $port install autossh bash coreutils git fwknop-client wget
 
 ## don't install unless really necessary, since it pulls
 ## in a LOT of stuff and takes forever.
-#sudo port install wireshark
+#sudo $port install wireshark
 
 # needed by disktest.sh, generally a better sed, since
 # it has the -r flag (extended regex's)
-sudo port install gsed
+sudo $port install gsed
 
 # because the built-in versions are insecure:
-sudo port install openssl curl
+sudo $port install openssl curl
 
 # https://github.com/koalaman/shellcheck
-sudo port install shellcheck
+sudo $port install shellcheck
 
 # This should be the default on Mac OS X.  It prevents all processes
 # from getting sudo privs.
