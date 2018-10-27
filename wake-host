@@ -103,6 +103,11 @@ fi
 ssh=$(which ssh)
 [ "$sshid" ] && ssh="$ssh -i $sshid"
 
+if $ssh $host /bin/date > /dev/null; then
+    echo $0: $host already awake
+    exit 0
+fi
+
 echo $0: using device $dev and MAC $mac
 sudo ether-wake -i $dev $mac
 sleep 30
