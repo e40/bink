@@ -1,0 +1,84 @@
+#! /bin/bash
+# Like rsync but versioned.  And by versioned, I mean:
+# each time vrsync is run, it makes a copy of the source argument into the
+# destination, named for the current date, and all files which have not
+# changed since the last time vrsync was run are merely hard links to those
+# previously seen files.  And, don't keep old copies forever, just for some
+# 60 days, but the operator of this script can override that.
+#
+# vrsync isn't exactly like rsync, though:
+#
+# Usage: vrsync [--max-age N] [--knock host]
+#               rsync://path/to/remote/directory/
+#               /local-directory/
+# where
+# --max-age N  :: change the default 60 days for the max time to keep old dirs
+# --knock host :: execute "bink/knock host"
+
+maxage=60
+
+opts=
+knock=
+verbose=
+while [ $# -gt 0 ]; do
+    case $1 in
+	--knock)
+	    shift
+	    knock=$1
+	    ;;
+	--max-age)
+	    shift
+	    maxage=$1
+	    ;;
+	-v) verbose=$1
+	    opts="$opts $1"
+	    ;;
+	-*) opts="$opts $1" ;;
+	*) break ;;
+    esac
+    shift
+done
+
+from="$1"
+to="$2"
+
+[ -d "$to" ] || mkdir "$to"
+
+function d {
+#For debugging, uncomment this:
+    #echo "+ $*"
+    "$@"
+}
+
+# remove expired directories
+for dir in `find "$to" -maxdepth 1 -type d -mtime +$maxage`; do
+    #echo "NOTE: removing expired directory: $dir"
+    d rm -fr "$dir"
+done
+
+mostrecent=`(cd "$to"; /bin/ls -r) | grep '^[0-9]' | head -1`
+today=`date +%Y.%m.%d-%H:%M:%S`
+
+if [ -z "$mostrecent" ]; then
+    echo No older mirror to rotate.  Starting fresh.
+elif [ "$(uname -s)" = "Darwin" ]; then
+    ##### Mac OS doesn't have "cp -l"... so use rsync
+    #echo most recent is $mostrecent.  Making links.
+    d rsync -qa --link-dest=../$mostrecent $to/$mostrecent/ $to/$today
+else
+    #echo most recent is $mostrecent.  Making links.
+    d cp -al $to/$mostrecent $to/$today
+fi
+
+[ "$knock" ] && knock -q $knock
+
+d myrsync $opts "$from" "$to/$today"
+
+# Note: rsync will set the modification time of the destination
+# directory to the modification time of the source directory so we touch
+# it here so that it reflects the time of the backup.
+touch "$to/$today"
+
+# make a `latest' link
+rm -f "$to/latest"
+ln -s "$today" "$to/latest"

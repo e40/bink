@@ -1,0 +1,153 @@
+#! /bin/bash
+# Just like rsync, but it has these additional arguments:
+# --max-delete N
+#   if --delete or --delete-before is given, then do not delete more than
+#   N files.  The default is 250.
+# --no-max-delete
+#   Put no limit on the number of files which can be deleted in one
+#   invocation of rsync.
+# --debug
+#   Do not execute any commands, but print them.
+#
+# Also, there are some macOS hacks included in here that allow the copying
+# of sparse bundles.  I'm pretty dumb about sparse bundles, so the code
+# that does this might be dumb.  Beware.
+#
+# All other arguments to this script must be valid arguments to rsync itself,
+# since any unknown arguments are passed directly to rsync.
+
+set -eu
+
+function errordie {
+    if [ -n "${*-}" ]; then
+	echo "Error: $*" 1>&2
+    fi
+    exit 1
+}
+
+function usage {
+    if [ -n "${*-}" ]; then
+	echo "Error: $*" 1>&2
+    fi
+    cat 1>&2 <<EOF
+Usage: myrsync [options] source destination
+EOF
+    exit 1
+}
+
+debug=
+verbose=-q
+exclude=
+
+maxdelete=250
+baseargs="-a --delete --delete-before --exclude lost+found"
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --debug) debug=$1 ;;
+	--exclude)
+	    exclude="$1 $2"
+	    shift
+	    ;;
+	--max-delete)
+	    maxdelete=$2
+	    shift
+	    ;;
+	--no-max-delete) maxdelete= ;;
+	-q) verbose=-q ;;
+	-v) verbose=-v ;;
+	-*) baseargs="$baseargs $1" ;;
+	*)  # first non-option arg... $1 is source
+	    break
+	    ;;
+    esac
+    shift
+done
+
+baseargs="$verbose $baseargs"
+
+if [ $# -ne 2 ]; then
+    usage expected two arguments: $*
+fi
+
+function d {
+    if [ "$debug" ]; then
+	echo "would do: $*"
+    else
+        "$@"
+    fi
+}
+
+[ "$exclude" ] && baseargs="$baseargs $exclude"
+[ "$maxdelete" ] && baseargs="$baseargs --max-delete=${maxdelete}"
+
+sparse=
+
+# Tweaks needed to copy sparse bundles on Mac OS.
+if [ "$(uname)" = "Darwin" ]; then
+
+    baseargs="$baseargs --exclude .fseventsd --exclude .Trashes --exclude .DocumentRevisions-V100 --exclude .Spotlight-V100 --exclude .TemporaryItems"
+
+    # Ideas from:
+    #   http://www.lbackup.org/synchronizing_disk_images_between_machines
+
+    # First, see if the source is a .sparsebundle and make sure it is not
+    # mounted
+    source=$(echo "$1" | sed -e 's,/$,,')
+    case "$(basename "$source")" in
+	*.sparsebundle)
+	    if hdiutil info | grep "image-path" | grep "$source" > /dev/null; then
+		errordie Error: cannot rsync while $source is mounted
+	    fi
+	    sparse=yes
+	    ;;
+    esac
+
+    # -N              preserve create times (newness)
+    # -H              preserve hard links
+    # -A              preserve ACLs (implies --perms)
+    # -X              preserve extended attributes
+    # -E              preserve the file's executability
+    # -x              don't cross filesystem boundaries
+    # --protect-args  no space-splitting; only wildcard special-chars
+    #    DO NOT USE THE ABOVE, IT CAUSES validate-ssh to not get the
+    #    correct arguments
+    # --fileflags     preserve file-flags (aka chflags)
+    # --force-change  affect user-/system-immutable files/dirs
+    [ "$sparse" ] &&
+    baseargs="$baseargs -NHAXEx --fileflags --force-change --rsync-path=/opt/local/bin/rsync"
+fi
+
+if [ -x /opt/local/bin/rsync ]; then
+    # Mac OS X, use the macports version
+    rsync=/opt/local/bin/rsync
+elif [ -x /usr/local/bin/rsync ]; then
+    # Linux, use the locally installed version, which
+    # understand the flags we need to preserve Mac OS X
+    # file attributes.
+    rsync=/usr/local/bin/rsync
+elif rsync --version | grep -q -F 3.0.9; then
+    rsync=rsync
+elif rsync --version | grep -q -F 3.1.2; then
+    rsync=rsync
+else
+    errordie Could not find the correct version of rsync
+fi
+
+date
+echo "+" $*
+
+# not supported in centos 7.4: -c arcfour 
+sshargs="ssh -T -o Compression=no -x -i $HOME/.ssh/id_rsa_nopw"
+
+
+if [[ $1 == rsync* ]] || [[ $2 == rsync* ]]; then
+    if [ "$verbose" = "-v" ]; then
+	echo $rsync $baseargs $*
+    fi
+    d $rsync $baseargs "$@"
+else
+    # not using rsync protocol, so need ssh w/o pw
+    [ "$verbose" = "-v" ] && [ ! "$debug" ] && echo $rsync $baseargs -e "$sshargs" "$@"
+    $rsync $baseargs -e "$sshargs" "$@"
+fi
