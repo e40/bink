@@ -1,0 +1,38 @@
+			-[Sat Dec 22 13:35:21 2018 by layer]-
+
+This documents the quirks of running the FastX 2 client on the
+machines I sit at: rick (work desktop), layerpro (work laptop), mack2
+(home desktop), gazorpazorp (home laptop).
+
+The main trouble/issue is the FastX 2 client 1) uses a built-in SSH
+client, and 2) always uses the available SSH agent.  The latter causes
+problems, as you'll see below.  Also, I switch between rick/mack2 a
+lot, so those systems are generally running in parallel.  And,
+finally, I use SSH agents at home and work, only one of which uses
+agent forwarding (work).  The goal is to minimize the number of
+ssh-agent processes.  I don't forward my agent from home to work, for
+the obvious reasons.
+
+Another wrinkle is I forward connects from home to work via a machine
+at home that I do not sit at.  That ssh runs in a screen.
+
+So, why all these words?  Because sometimes connecting my FastX client
+from home to work hangs.  When that happens, this is the fix, which is
+sufficiently complex that I need to refer to it from time to time:
+
+* Make sure no FastX instances are running at home.
+
+* Run FastX from the Dock and connect to work.  If this hangs, then:
+    - exit all FastX instances
+    - restart tunnel to work
+    - try again
+  Still broken?
+    - kill all the ssh-agent processes at work
+    - restart tunnel -- this should start a new agent at work and ask
+      to add my default key
+    - try again
+
+NOTE: at home, I run two instances of FastX.  The instance for work
+doesn't use my home agent.  The instance for home uses my home agent,
+and for this reason it needs to be run from BASH with the `fastx`
+alias.

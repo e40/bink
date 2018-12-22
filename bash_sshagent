@@ -1,6 +1,13 @@
 #! /bin/bash
 # Decide when and where to run an SSH agent.
-# See the discussion in (FI) howto/fastx.txt.
+# See the discussion in bink/bash_sshagent.txt.
+
+[ "${INHIBIT_SSH_AGENT-}" ] && return
+
+if ! type -p __my_run_ssh_agent_p > /dev/null; then
+    echo WARNING: .bash_sshagent: __my_run_ssh_agent_p not defiend
+    return
+fi
 
 # uncomment to turn on debugging
 #_debug_on ssh
@@ -115,7 +122,7 @@ function __my_connected_to_sshagent_p {
 }
 
 # For machines that are not running at least BASH version 4, just silently
-# exit.  (peep, bear, goat and bigmac, I'm looking at you!)
+# exit.
 if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
     return 0
 fi
@@ -128,11 +135,8 @@ fi
 # This is not done earlier in this script because the functions defined
 # above are needed in .bashrc (or files sourced by it).
 #
-if [[ $MACH =~ (layerpro|gremlin|thor|thunder|t1|rick) ]]; then
-    # Fall through...
-    :
-else
-    _debug ssh ABORT .bash_sshagent processing
+if ! __my_run_ssh_agent_p; then
+    _debug ssh do not run ssh-agent on this machine
     return 0
 fi
 
