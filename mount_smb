@@ -93,8 +93,12 @@ should be added with the "visudo" command as root:
    Defaults        env_keep += "AUTOSSH_PIDFILE"
    $USER ALL=(ALL) NOPASSWD: /sbin/ifconfig lo0 *
    $USER ALL=(ALL) NOPASSWD: /opt/local/bin/autossh
-   $USER ALL=(ALL) NOPASSWD: /usr/bin/ssh
+   $USER ALL=(ALL) NOPASSWD: /opt/local/bin/ssh
    $USER ALL=(ALL) NOPASSWD: $removepidfile ${pidfileprefix}*
+
+The above assumes that /opt/local/bin/ssh is used in preference to
+/usr/bin/ssh.  If that is not the case, then update which binary is allowed
+by sudo.
 
 This script has been tested on Mac OS X 10.9.
 
