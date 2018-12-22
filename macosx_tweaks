@@ -222,6 +222,7 @@ sudo $port install openssh
 # fwknop-client because I need to knock
 # wget because it's handy
 sudo $port install autossh bash coreutils git fwknop-client wget
+sudo $port install moreutils perl5 gnutar
 
 ## don't install unless really necessary, since it pulls
 ## in a LOT of stuff and takes forever.
@@ -235,7 +236,13 @@ sudo $port install gsed
 sudo $port install openssl curl
 
 # https://github.com/koalaman/shellcheck
-sudo $port install shellcheck
+#### too many dependencies and I don't use this much
+#sudo $port install shellcheck
+
+# for certain types of scripting
+#### too many dependencies and I only use this on one machine at home,
+#### so just manually install it there.
+#sudo $port install xmlstarlet
 
 # This should be the default on Mac OS X.  It prevents all processes
 # from getting sudo privs.
