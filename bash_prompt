@@ -1,0 +1,148 @@
+#! /bin/bash
+# BASH prompt hacking
+#
+# Add git branch, indication of ssh-agent running and primed, and Window
+# build env setup.  The git branch is cached and only executed when needed
+# (after changing directories or issuing a "git checkout").  The Windows
+# build env is done once per shell and is based on the PWD.
+
+#### attempt to get tramp to work... failed
+#if [ "x${TERM-}" = "xdumb" ]; then
+#    export PS1='$ '
+#    return 0
+#fi
+
+# some Solaris machines are old and don't have ssh-agent
+[ "${SOLARIS-}" ] && return 0
+
+# doesn't work on peep
+[ "$HOSTNAME" = "peep.franz.com" ] && return 0
+
+__my_sshagent_prompt()
+{
+    __my_connected_to_sshagent_p || return 0
+    if __my_have_one_identity_p; then
+	echo -n "@"
+    else
+	echo -n "-"
+    fi
+}
+
+# Optionally print the gitbranch portion of the prompt
+function __dkl_print_gitbranch {
+    [ "${2-}" ] && printf "$@"
+}
+
+# Just like (format t "~&")
+# Should work in any bash, right?
+function __dkl_format_tilde_ampersand {
+    local curpos
+    echo -en "\E[6n"
+    IFS=";" read -sdR -a curpos
+    ((curpos[1]!=1)) && echo -e '\E[1m\E[41m\E[33m%\E[0m'
+}
+
+trap '__previous_command=$__this_command; __this_command=$BASH_COMMAND' DEBUG
+
+__dkl_cached_pwd=
+__dkl_cached_gitbranch=
+
+# This is the value of PROMPT_COMMAND, executed before the prompt is printed.
+# We set PS1 here rather than running functions in the prompt because
+# each time you use $(...) in PS1 you get a new subshell.  That makes
+# using shell variables USELESS, and I want to use shell variables
+# to cache things, to make consing up a new prompt faster.  Cygwin can
+# be slow.
+function __dkl_prompt_command {
+    local pwd_changed
+    if [ "${__dkl_cached_pwd}" -a '(' "${__dkl_cached_pwd}" = "$PWD" ')' ]; then
+	pwd_changed=
+	# See if we changed the prompt:
+	if [[ "${__previous_command}" =~ 'git checkout' ]]; then
+	    pwd_changed=xxx
+	fi
+    else
+	pwd_changed=xxx
+    fi
+
+    if [ ! "${__dkl_cached_gitbranch}" -o '(' -n "$pwd_changed" ')' ]; then
+	if git rev-parse --git-dir >/dev/null 2>&1; then
+	    __dkl_cached_gitbranch=$(git symbolic-ref -q HEAD 2>/dev/null | sed 's,refs/heads/,,')
+	fi
+    fi
+
+    # We know enough to build the prompt, now, from scratch
+    PS1=
+
+    #I'm tired of this:
+    #[ "${WINDIR-}" ] && PS1="$PS1 \\w\\n"
+
+    PS1="$PS1$(__my_sshagent_prompt)\\h$(__dkl_print_gitbranch '[git:%s]' ${__dkl_cached_gitbranch})"
+
+    userchar='$'
+    if [ "${WINDIR-}" ]; then
+	if net session > /dev/null 2>&1; then
+	    userchar='#'
+	fi
+    elif [ "$(id -u)" = 0 ]; then
+        userchar='#'
+    fi
+    export PS1="$PS1$userchar "
+
+    # First time only, fire off the env-setting function below
+    if [ ! "$__dkl_cached_pwd" ]; then
+	cd .
+    fi
+    __dkl_cached_pwd=$PWD
+
+    #__dkl_format_tilde_ampersand
+}
+
+# "If set, the value is executed as a command prior to issuing
+# each primary prompt."
+PROMPT_COMMAND=__dkl_prompt_command
+
+function __do_acl_build_env_setup {
+    # easy way to identify an ACL binary directory:
+    # need to check makefile.top so we don't try this when cd'ing into
+    # a source tree.
+    [ -f makefile.m -a -f env.sh -a -f ../makefile.top ] && source env.sh
+}
+
+# Breaks emacsclient on non-ssh-only machines. Need to fix that, if
+# that's even possible.
+function DISABLEDcd {
+    # lockf(3) doesn't work on FreeBSD on an NFS-mounted filesystem, so
+    # remove the /net/<host> so ACL tests work on FreeBSD, when on
+    # the same host.  This solution works quite nicely with Emacs'
+    # directory tracking.
+    local dir="$@"
+
+    if [ "$dir" = "." ]; then
+	return
+    fi
+	
+    if [ ! "$dir" ]; then
+	builtin cd
+	return
+    fi
+
+    if [[ "$dir" =~ ^/net/([^/]+)(/.*) ]]; then
+	if [ "${BASH_REMATCH[1]}" = "$MACH" ]; then
+	    dir="${BASH_REMATCH[2]}"
+	    echo "#really cd to $dir instead"
+	fi
+    fi
+    builtin cd "$dir" && __do_acl_build_env_setup
+}
+function cd {
+    builtin cd "$@" && __do_acl_build_env_setup
+}
+
+function pushd {
+    builtin pushd "$@" && __do_acl_build_env_setup
+}
+
+function popd {
+    builtin popd "$@" && __do_acl_build_env_setup
+}

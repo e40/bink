@@ -1,0 +1,223 @@
+#! /bin/bash
+# Decide when and where to run an SSH agent.
+# See the discussion in (FI) howto/fastx.txt.
+
+# uncomment to turn on debugging
+#_debug_on ssh
+
+# Where I get mail and run emacs.
+__my_home_machine=$DKLHOMEMACHINE
+
+# Info saved about agents this script starts:
+__my_agent_info="$HOME/tmp/agent.info"
+# Info saved about a forwarded agent:
+__my_agent_info2="$HOME/tmp/agent.info2"
+
+# Return true if $MACH (set in .bashrc) is my home machine (where I get
+# email and run emacs), false otherwise.
+function __my_home_machine {
+    _debug ssh ============== ENT:__my_home_machine
+    if [[ $MACH =~ ${__my_home_machine} ]]; then
+	_debug ssh on home machine
+	_debug ssh ============== RET:__my_home_machine: TRUE
+	return 0
+    else
+	_debug ssh ============== RET:__my_home_machine: FALSE
+	_debug ssh NOT on home machine
+	return 1
+    fi
+}
+
+# Return true if there is at least 1 key in the agent.
+# Used by .bash_prompt.
+function __my_have_one_identity_p {
+    _debug ssh ============== ENT:__my_have_one_identity_p
+    if ssh-add -l &> /dev/null; then
+	_debug ssh have one identity
+	_debug ssh ============== RET:__my_have_one_identity_p: TRUE
+	return 0
+    else
+	_debug ssh NO identities
+	_debug ssh ============== RET:__my_have_one_identity_p: FALSE
+	return 1
+    fi
+}
+
+# Return true if SSH_AUTH_SOCK is connected to a running process.
+function __my_ssh_auth_sock_valid_p {
+    _debug ssh ============== ENT:__my_ssh_auth_sock_valid_p
+    if lsof +d /tmp 2>/dev/null | grep -q $SSH_AUTH_SOCK; then
+	_debug ssh ============== RET: __my_ssh_auth_sock_valid_p: TRUE
+	return 0
+    else
+	_debug ssh ============== RET: __my_ssh_auth_sock_valid_p: FALSE
+	return 1
+    fi
+}
+
+# Return true if an agent is running, false otherwise.
+# Used by .bash_prompt.
+function __my_connected_to_sshagent_p {
+    _debug ssh ============== ENT:__my_connected_to_sshagent_p
+    # If we have a PID, then make sure it's valid
+    if [ "${SSH_AGENT_PID-}" ]; then
+	if ps -p $SSH_AGENT_PID > /dev/null; then
+	    if __my_have_one_identity_p; then
+		_debug ssh success 2
+		_debug ssh ============== RET: __my_connected_to_sshagent_p: TRUE
+		return 0
+	    fi
+	else
+	    _debug ssh SSH_AGENT_PID is bogus
+	    _debug ssh ============== RET: __my_connected_to_sshagent_p: FALSE
+	    return 1
+	fi
+    else
+	_debug ssh SSH_AGENT_PID is null
+    fi
+
+    # Check for a forwarded agent
+    [ "${SSH_AUTH_SOCK}" ] && [ -r "${SSH_AUTH_SOCK}" ] && {
+	# An agent might be running.
+	# Before returning success, if there is at least one
+	# identity and we're on my home machine, then save
+	# the SSH_AUTH_SOCK value so cron can use it.
+
+	if ! __my_ssh_auth_sock_valid_p; then
+	    _debug ssh SSH_AUTH_SOCK is NOT valid
+	    _debug ssh ============== RET: __my_connected_to_sshagent_p: FALSE
+	    return 1
+	fi
+	    
+	if __my_have_one_identity_p; then
+	    # We have an identity, so the connection to the agent
+	    # must be valid.
+	    _debug ssh found SSH_AUTH_SOCK agent
+	    __my_home_machine && {
+		_debug ssh on home machine, save SSH_AUTH_SOCK
+		# A forwarded agent is on my home machine, so
+		# save the SSH_AUTH_SOCK for use by cron jobs.
+		echo "export SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" \
+		     > ${__my_agent_info2}
+	    }
+	    _debug ssh ============== RET: __my_connected_to_sshagent_p: TRUE
+	    return 0
+	else
+	    _debug ssh no forwarded agent, remove ${__my_agent_info2}
+	    rm -f ${__my_agent_info2}
+	fi
+    }
+
+    # assume it is not running
+    _debug ssh no agent is running
+    _debug ssh ============== RET: __my_connected_to_sshagent_p: FALSE
+    return 1
+}
+
+# For machines that are not running at least BASH version 4, just silently
+# exit.  (peep, bear, goat and bigmac, I'm looking at you!)
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+    return 0
+fi
+
+# Exit this script if it is not running on a machine I sit at.
+# The Windows machines are in this list because I use RDP to get to them,
+# and that qualifies as "sitting at", since RDP doesn't take over any
+# environment from the originating host.
+#
+# This is not done earlier in this script because the functions defined
+# above are needed in .bashrc (or files sourced by it).
+#
+if [[ $MACH =~ (layerpro|gremlin|thor|thunder|t1|rick) ]]; then
+    # Fall through...
+    :
+else
+    _debug ssh ABORT .bash_sshagent processing
+    return 0
+fi
+
+###############################################################################
+
+# Either connect to an exiting or start a new SSH agent.
+function __my_initialize_sshagent {
+    _debug ssh ============== ENT:__my_initialize_sshagent
+
+    # IMPORTANT:
+    #   We MUST check for a forwarded agent first, otherwise we might
+    #   needlessly create locally running agents.
+
+    # Check for a saved forwarded agent info.  This is only used
+    # when running scripts from cron.
+    if [ -f "${__my_agent_info2}" ]; then
+	_debug ssh source ${__my_agent_info2}
+	source ${__my_agent_info2} > /dev/null
+	if __my_connected_to_sshagent_p; then
+	    _debug ssh Using existing agent from ${__my_agent_info2}
+####WTF IS THIS?????
+#	    _debug_p ssh && ssh-add -l || true
+	    _debug ssh ============== RET:__my_initialize_sshagent: TRUE
+	    return 0
+	else
+##TODO: have a debug level where I see this by default
+	    _debug ssh ${__my_agent_info2} is stale, removing
+	    rm -f ${__my_agent_info2} 
+	fi
+    else
+	_debug ssh ${__my_agent_info2} does not exist
+    fi
+
+    _debug ssh Checking for existing agent...
+    if [ -f "${__my_agent_info}" ]; then
+	_debug ssh source ${__my_agent_info}
+	source ${__my_agent_info} > /dev/null
+	if __my_connected_to_sshagent_p; then
+	    _debug ssh Using existing agent from ${__my_agent_info}
+	    _debug_p ssh && ssh-add -l || true
+	    _debug ssh ============== RET:__my_initialize_sshagent: TRUE
+	    return 0
+	else
+##TODO: have a debug level where I see this by default
+	    _debug ssh ${__my_agent_info} is stale, removing
+	    rm -f ${__my_agent_info} 
+	fi
+    fi
+
+    # if we get here, we could not connect to an agent, so start one...
+
+    ssh-agent -s > ${__my_agent_info} &&
+    source ${__my_agent_info} > /dev/null &&
+    echo NOTE: start new SSH agent: PID=$SSH_AGENT_PID
+    chmod 600 ${__my_agent_info}
+    _debug ssh ============== RET:__my_initialize_sshagent: TRUE
+}
+
+# If my default identity is not already added to the agent, then add it.
+function __my_add_default_identity {
+    _debug ssh ============== ENT:__my_add_default_identity
+    local earg
+    # Don't grep for ".ssh/id_rsa" since there are more than one of those
+    # (one for home and work).  Use the fingerprint.
+    local sshfp=59:12:60:5f:84
+    local sshid=~/.ssh/id_rsa
+
+    _debug ssh in __my_add_default_identity
+
+    if [ "${DARWIN-}" ] || [ "${WINDIR-}" ]; then
+	earg="-E md5"
+    fi
+    if ! ssh-add $earg -l 2>/dev/null | grep -q ${sshfp}; then
+	echo "ssh-add ${sshid}"
+	if ! ssh-add ${sshid}; then
+	    echo COULD NOT ADD IDENTITY ${sshid} 1>&2
+	fi
+    fi
+    _debug ssh ============== RET:__my_add_default_identity
+}
+
+if ! __my_connected_to_sshagent_p; then
+    __my_initialize_sshagent
+fi
+
+if ! __my_have_one_identity_p; then
+    __my_add_default_identity
+fi
