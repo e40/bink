@@ -53,7 +53,7 @@ function __my_have_one_identity_p {
 # Return true if SSH_AUTH_SOCK is connected to a running process.
 function __my_ssh_auth_sock_valid_p {
     _debug ssh ============== ENT:__my_ssh_auth_sock_valid_p
-    if lsof +d /tmp 2>/dev/null | grep -q $SSH_AUTH_SOCK; then
+    if lsof -a -U -u$USER | grep -q $SSH_AUTH_SOCK; then
 	_debug ssh ============== RET: __my_ssh_auth_sock_valid_p: TRUE
 	return 0
     else
@@ -176,7 +176,8 @@ function __my_initialize_sshagent {
 	source ${__my_agent_info} > /dev/null
 	if __my_connected_to_sshagent_p; then
 	    _debug ssh Using existing agent from ${__my_agent_info}
-	    _debug_p ssh && ssh-add -l || true
+####WTF IS THIS?????
+#	    _debug_p ssh && ssh-add -l || true
 	    _debug ssh ============== RET:__my_initialize_sshagent: TRUE
 	    return 0
 	else
