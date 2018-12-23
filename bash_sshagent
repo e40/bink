@@ -31,6 +31,16 @@ if [ ! "${__my_ssh_default_identity_md5-}" ]; then
     echo WARNING: __my_ssh_default_identity_md5 is not defined
     return
 fi
+## check the values
+if [ ${#__my_ssh_default_identity[@]} != ${#__my_ssh_default_identity_md5[@]} ]
+then
+    cat <<EOF
+WARNING: __my_ssh_default_identity and __my_ssh_default_identity_md5
+         have different number of elements.  Fix this to enable
+	 agent handling.
+EOF
+    return
+fi
 
 # Info saved about the agent this script starts:
 __my_agent_info="$HOME/tmp/agent.info"
@@ -45,16 +55,19 @@ function __my_ssh_have_one_identity_p {
 	return 1
     fi
 }
-
 # If my default identity is not already added to the agent, then add it.
-function __my_ssh_ensure_default_identity {
-    local fp=${__my_ssh_default_identity_md5}
-    if ! ssh-add -E md5 -l 2>/dev/null | grep -q $fp; then
-	echo NOTE: adding identity ${__my_ssh_default_identity}
-	if ! ssh-add ${__my_ssh_default_identity}; then
-	    echo COULD NOT ADD IDENTITY 1>&2
+function __my_ssh_ensure_default_identities {
+    local ids=(${__my_ssh_default_identity})
+    local fps=(${__my_ssh_default_identity_md5})
+    local n=${#ids[@]}
+    local i=0
+    while [ $i -lt $n ]; do
+	if ! ssh-add -E md5 -l 2>/dev/null | grep -q ${fps[$i]}; then
+	    echo NOTE: adding identity ${ids[$i]}
+	    ssh-add ${ids[$i]} || echo COULD NOT ADD IDENTITY 1>&2
 	fi
-    fi
+	i=$(( i + 1 ))
+    done
 }
 
 __my_ssh_have_lsof=
@@ -183,4 +196,4 @@ function __my_ssh_initialize_agent {
 
 __my_ssh_connected_to_agent_p || __my_ssh_initialize_agent
 
-__my_ssh_ensure_default_identity
+__my_ssh_ensure_default_identities
