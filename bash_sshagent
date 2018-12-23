@@ -13,14 +13,11 @@ fi
 
 [ "${INHIBIT_SSH_AGENT-}" ] && return
 
+#################### error checks
+
 if ! type -p __my_ssh_run_agent_p > /dev/null; then
     # Silently return, as this machine likely is running a BASH
     # before version 4.
-    return
-fi
-
-if ! type -p __my_home_machine > /dev/null; then
-    echo WARNING: __my_home_machine is not defined 1>&2
     return
 fi
 if [ ! "${__my_ssh_default_identity-}" ]; then
@@ -41,6 +38,10 @@ WARNING: __my_ssh_default_identity and __my_ssh_default_identity_md5
 EOF
     return
 fi
+
+[ -d $HOME/tmp ] || mkdir $HOME/tmp
+
+#################### ...error checks
 
 # Info saved about the agent this script starts:
 __my_agent_info="$HOME/tmp/agent.info"
@@ -121,7 +122,7 @@ function __my_ssh_connected_to_agent_p {
 	if __my_ssh_have_one_identity_p; then
 	    # We have an identity, so the connection to the agent
 	    # must be valid.
-	    __my_home_machine && {
+	    __my_ssh_run_agent_p && {
 		# A forwarded agent is on my home machine, so
 		# save the SSH_AUTH_SOCK for use by cron jobs.
 		echo "export SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" \
@@ -155,7 +156,7 @@ function __my_ssh_agent_prompt_string {
 # This is not done earlier in this script because the functions defined
 # above are used in the construction of the prompt string.
 
-__my_ssh_run_agent_p || return 0
+__my_ssh_run_agent_p || return
 ###############################################################################
 
 # Either connect to an exiting or start a new SSH agent.
