@@ -20,15 +20,15 @@ if ! type -p __my_ssh_run_agent_p > /dev/null; then
 fi
 
 if ! type -p __my_home_machine > /dev/null; then
-    echo WARNING: __my_home_machine is not defined
+    echo WARNING: __my_home_machine is not defined 1>&2
     return
 fi
 if [ ! "${__my_ssh_default_identity-}" ]; then
-    echo WARNING: __my_ssh_default_identity is not defined
+    echo WARNING: __my_ssh_default_identity is not defined 1>&2
     return
 fi
 if [ ! "${__my_ssh_default_identity_md5-}" ]; then
-    echo WARNING: __my_ssh_default_identity_md5 is not defined
+    echo WARNING: __my_ssh_default_identity_md5 is not defined 1>&2
     return
 fi
 ## check the values
@@ -63,7 +63,7 @@ function __my_ssh_ensure_default_identities {
     local i=0
     while [ $i -lt $n ]; do
 	if ! ssh-add -E md5 -l 2>/dev/null | grep -q ${fps[$i]}; then
-	    echo NOTE: adding identity ${ids[$i]}
+	    echo NOTE: adding identity ${ids[$i]} 1>&2
 	    ssh-add ${ids[$i]} || echo COULD NOT ADD IDENTITY 1>&2
 	fi
 	i=$(( i + 1 ))
@@ -171,7 +171,7 @@ function __my_ssh_initialize_agent {
 
 	__my_ssh_connected_to_agent_p && return 0
 	
-	echo NOTE: ${__my_agent_info2} is stale, removing
+	echo NOTE: ${__my_agent_info2} is stale, removing 1>&2
 	rm -f ${__my_agent_info2} 
     fi
 
@@ -180,7 +180,7 @@ function __my_ssh_initialize_agent {
 
 	__my_ssh_connected_to_agent_p && return 0
 
-	echo NOTE: ${__my_agent_info} is stale, removing
+	echo NOTE: ${__my_agent_info} is stale, removing 1>&2
 	rm -f ${__my_agent_info} 
     fi
 
@@ -188,7 +188,7 @@ function __my_ssh_initialize_agent {
 
     ssh-agent -s > ${__my_agent_info} &&
     source ${__my_agent_info} > /dev/null &&
-    echo NOTE: start new SSH agent: PID=$SSH_AGENT_PID
+    echo NOTE: start new SSH agent: PID=$SSH_AGENT_PID 1>&2
     chmod 600 ${__my_agent_info}
 }
 
