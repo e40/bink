@@ -19,13 +19,13 @@ function __my_prompt_sshagent_string {
 }
 
 # Optionally print the gitbranch portion of the prompt
-function __dkl_print_gitbranch {
+function __my_prompt_print_gitbranch {
     [ "${2-}" ] && printf "$@"
 }
 
 # Just like (format t "~&")
 # Should work in any bash, right?
-function __dkl_format_tilde_ampersand {
+function __my_prompt_format_tilde_ampersand {
     local curpos
     echo -en "\E[6n"
     IFS=";" read -sdR -a curpos
@@ -34,8 +34,8 @@ function __dkl_format_tilde_ampersand {
 
 trap '__previous_command=$__this_command; __this_command=$BASH_COMMAND' DEBUG
 
-__dkl_cached_pwd=
-__dkl_cached_gitbranch=
+__my_prompt_cached_pwd=
+__my_prompt_cached_gitbranch=
 
 # This is the value of PROMPT_COMMAND, executed before the prompt is printed.
 # We set PS1 here rather than running functions in the prompt because
@@ -43,9 +43,11 @@ __dkl_cached_gitbranch=
 # using shell variables USELESS, and I want to use shell variables
 # to cache things, to make consing up a new prompt faster.  Cygwin can
 # be slow.
-function __dkl_prompt_command {
+function __my_prompt_prompt_command {
     local pwd_changed
-    if [ "${__dkl_cached_pwd}" -a '(' "${__dkl_cached_pwd}" = "$PWD" ')' ]; then
+    local agent
+    local gitbranch
+    if [ "${__my_prompt_cached_pwd}" -a '(' "${__my_prompt_cached_pwd}" = "$PWD" ')' ]; then
 	pwd_changed=
 	# See if we changed the prompt:
 	if [[ "${__previous_command}" =~ 'git checkout' ]]; then
@@ -55,19 +57,16 @@ function __dkl_prompt_command {
 	pwd_changed=xxx
     fi
 
-    if [ ! "${__dkl_cached_gitbranch}" -o '(' -n "$pwd_changed" ')' ]; then
+    if [ ! "${__my_prompt_cached_gitbranch}" -o '(' -n "$pwd_changed" ')' ]; then
 	if git rev-parse --git-dir >/dev/null 2>&1; then
-	    __dkl_cached_gitbranch=$(git symbolic-ref -q HEAD 2>/dev/null | sed 's,refs/heads/,,')
+	    __my_prompt_cached_gitbranch=$(git symbolic-ref -q HEAD 2>/dev/null | sed 's,refs/heads/,,')
 	fi
     fi
 
-    # We know enough to build the prompt
-    PS1=
+    agent="$(__my_prompt_sshagent_string)"
+    gitbranch="$(__my_prompt_print_gitbranch '[git:%s]' ${__my_prompt_cached_gitbranch})"
 
-    #I'm tired of this:
-    #[ "${WINDIR-}" ] && PS1="$PS1 \\w\\n"
-
-    PS1="$PS1$(__my_prompt_sshagent_string)\\h$(__dkl_print_gitbranch '[git:%s]' ${__dkl_cached_gitbranch})"
+    PS1="$agent\\h$gitbranch"
 
     userchar='$'
     if [ "${WINDIR-}" ]; then
@@ -80,17 +79,17 @@ function __dkl_prompt_command {
     export PS1="$PS1$userchar "
 
     # First time only, fire off the env-setting function below
-    if [ ! "$__dkl_cached_pwd" ]; then
+    if [ ! "$__my_prompt_cached_pwd" ]; then
 	cd .
     fi
-    __dkl_cached_pwd=$PWD
+    __my_prompt_cached_pwd=$PWD
 
-    #__dkl_format_tilde_ampersand
+    #__my_prompt_format_tilde_ampersand
 }
 
 # "If set, the value is executed as a command prior to issuing
 # each primary prompt."
-PROMPT_COMMAND=__dkl_prompt_command
+PROMPT_COMMAND=__my_prompt_prompt_command
 
 # If the current directory is an ACL binary directory, then
 # source env.sh to setup the build environment.

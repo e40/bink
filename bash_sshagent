@@ -24,7 +24,11 @@ if ! type -p __my_home_machine > /dev/null; then
     return
 fi
 if [ ! "${__my_ssh_default_identity-}" ]; then
-    echo WARNING: __my_ssh_default_identity_fp is not defined
+    echo WARNING: __my_ssh_default_identity is not defined
+    return
+fi
+if [ ! "${__my_ssh_default_identity_md5-}" ]; then
+    echo WARNING: __my_ssh_default_identity_md5 is not defined
     return
 fi
 
@@ -35,7 +39,7 @@ __my_agent_info2="$HOME/tmp/agent.info2"
 
 # Return true if there is at least 1 key in the agent.
 function __my_ssh_have_one_identity_p {
-    if ssh-add -l &> /dev/null; then
+    if ssh-add -l &>/dev/null; then
 	return 0
     else
 	return 1
@@ -44,7 +48,8 @@ function __my_ssh_have_one_identity_p {
 
 # If my default identity is not already added to the agent, then add it.
 function __my_ssh_ensure_default_identity {
-    if ! ssh-add -l 2>/dev/null | grep -q ${__my_ssh_default_identity}; then
+    local fp=${__my_ssh_default_identity_md5}
+    if ! ssh-add -E md5 -l 2>/dev/null | grep -q $fp; then
 	echo NOTE: adding identity ${__my_ssh_default_identity}
 	if ! ssh-add ${__my_ssh_default_identity}; then
 	    echo COULD NOT ADD IDENTITY 1>&2
@@ -54,17 +59,28 @@ function __my_ssh_ensure_default_identity {
 
 __my_ssh_have_lsof=
 type -p lsof > /dev/null && __my_ssh_have_lsof=xxx
+__my_ssh_have_ss=
+type -p ss > /dev/null && __my_ssh_have_ss=xxx
 
 # Return true if SSH_AUTH_SOCK is connected to a running process.
+# Try ss first, then lsof.  ss is more reliable, I have found.
 function __my_ssh_auth_sock_valid_p {
-    if [ ! "${__my_ssh_have_lsof}" ]; then
-	return 1
+    local usock=$(readlink $SSH_AUTH_SOCK)
+
+    if [ "${__my_ssh_have_ss}" ]; then
+	if ss -l | grep -q $usock; then
+	    return 0
+	fi
+	# fall through...
     fi
-    if lsof -a -U -u$USER | grep -q $SSH_AUTH_SOCK; then
-	return 0
-    else
-	return 1
+	
+    if [ "${__my_ssh_have_lsof}" ]; then
+	if lsof -a -U -u$USER 2>/dev/null | grep -q $usock; then
+	    return 0
+	fi
+	# fall through...
     fi
+    return 1
 }
 
 # Return true if an agent is running, false otherwise.
