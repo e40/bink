@@ -65,7 +65,8 @@ type -p ss > /dev/null && __my_ssh_have_ss=xxx
 # Return true if SSH_AUTH_SOCK is connected to a running process.
 # Try ss first, then lsof.  ss is more reliable, I have found.
 function __my_ssh_auth_sock_valid_p {
-    local usock=$(readlink $SSH_AUTH_SOCK)
+    local usock=$SSH_AUTH_SOCK
+    [ -L $usock ] && usock=$(readlink $usock)
 
     if [ "${__my_ssh_have_ss}" ]; then
 	if ss -l | grep -q $usock; then
