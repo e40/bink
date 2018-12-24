@@ -24,7 +24,7 @@ function __my_prompt_print_gitbranch {
 }
 
 # Just like (format t "~&")
-# Should work in any bash, right?
+## UNUSED (for now)
 function __my_prompt_format_tilde_ampersand {
     local curpos
     echo -en "\E[6n"
@@ -84,6 +84,9 @@ function __my_prompt_prompt_command {
     fi
     __my_prompt_cached_pwd=$PWD
 
+    # This tries to ensure that the prompt is printed at the beginning
+    # of a new line, but I could not get this to work, so it is
+    # disabled for now.
     #__my_prompt_format_tilde_ampersand
 }
 

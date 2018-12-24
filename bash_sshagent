@@ -1,19 +1,20 @@
 #! /bin/bash
 # Decide when and where to run an SSH agent.
 # See the discussion in bink/bash_sshagent.txt.
-#
+
 # uncomment to turn on debugging
 #set -x
 
 # For machines that are not running at least BASH version 4, just silently
-# exit.
+# exit, since the code here uses >=4 features.
 if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
     return 0
 fi
 
+# Allow scripts to turn this off.
 [ "${INHIBIT_SSH_AGENT-}" ] && return
 
-#################### error checks
+#################### sanity checks
 
 if ! type -p __my_ssh_run_agent_p > /dev/null; then
     # Silently return, as this machine likely is running a BASH
@@ -21,31 +22,39 @@ if ! type -p __my_ssh_run_agent_p > /dev/null; then
     return
 fi
 if [ ! "${__my_ssh_default_identity-}" ]; then
-    echo WARNING: __my_ssh_default_identity is not defined 1>&2
+    echo ABORT: __my_ssh_default_identity is not defined 1>&2
     return
 fi
 if [ ! "${__my_ssh_default_identity_md5-}" ]; then
-    echo WARNING: __my_ssh_default_identity_md5 is not defined 1>&2
+    echo ABORT: __my_ssh_default_identity_md5 is not defined 1>&2
     return
 fi
-## check the values
+# Make sure these two variables have the same number of space-separated
+# values.
 if [ ${#__my_ssh_default_identity[@]} != ${#__my_ssh_default_identity_md5[@]} ]
 then
     cat <<EOF
-WARNING: __my_ssh_default_identity and __my_ssh_default_identity_md5
-         have different number of elements.  Fix this to enable
-	 agent handling.
+ABORT: __my_ssh_default_identity and __my_ssh_default_identity_md5
+       have a different number of elements.  Fix this to enable
+       agent handling.
 EOF
     return
 fi
 
-[ -d $HOME/tmp ] || mkdir $HOME/tmp
+if [ ! -d $HOME/tmp ]; then
+    mkdir $HOME/tmp
+    # By default it should be secure against snooping, since we put
+    # agent info there.
+    chmod 700 $HOME/tmp
+fi
 
-#################### ...error checks
+#################### ...sanity checks
 
-# Info saved about the agent this script starts:
+# Info saved about an agent we start here goes into this file:
 __my_agent_info="$HOME/tmp/agent.info"
-# Info saved about a forwarded agent:
+
+# Info saved about a forwarded agent goes into this file, for use by
+# scripts and cron jobs:
 __my_agent_info2="$HOME/tmp/agent.info2"
 
 # Return true if there is at least 1 key in the agent.
