@@ -17,3 +17,8 @@ This BASH script does these things:
   a binary directory for a given platform.  It redefines `cd`, `pushd`
   and `popd` to do this, calling the built-in versions of each.  This
   feature is obviously only useful to developers of ACL.
+
+To use it, simply add this to the non-interactive portion of your
+`$HOME/.bashrc`:
+
+    source $HOME/bink/bash_prompt
