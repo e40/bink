@@ -1,10 +1,6 @@
 #! /bin/bash
 # BASH prompt hacking
-#
-# Add git branch, indication of ssh-agent running and primed, and Window
-# build env setup.  The git branch is cached and only executed when needed
-# (after changing directories or issuing a "git checkout").  The Windows
-# build env is done once per shell and is based on the PWD.
+# See bash_prompt.md for details.
 
 # For machines that are not running at least BASH version 4, just silently
 # exit.

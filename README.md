@@ -7,7 +7,7 @@ Stackoverflow gets lots of thanks.
 
 | **Script**    | **Description** |
 | :------------ | :-------------- |
-| bash_prompt   | a fancy prompt for BASH |
+| bash_prompt   | [a utilitarian BASH prompt](bash_prompt.md) |
 | bash_sshagent | [automatic SSH agent handling for BASH](bash_sshagent.md) |
 | diffdirs      | diff two directories, but not their contents |
 | knock         | knock but no more than needed |
