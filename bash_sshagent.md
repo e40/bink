@@ -25,7 +25,7 @@ a clone of the git repository.
 
     source $HOME/bink/bash_sshagent
 
-If you use `bink`bash_prompt`, then make sure it is `source`d after
+If you use `bink/bash_prompt`, then make sure it is `source`d after
 `bash_sshagent`, and in the interactive portion of `$HOME/.bashrc`
 (see below).
 
