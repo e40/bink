@@ -1,7 +1,9 @@
-# bink - a personal collection of BASH scripts
+# bink - a personal collection of scripts
 
 _bink_ is a collection of scripts that I share between work and
-home.  I hope you enjoy them.
+home.  I hope you enjoy them and find them useful.  I've tried to give
+attribution for scripts and ideas I found on the intertubes.
+Stackoverflow gets lots of thanks.
 
 | **Script**    | **Description** |
 | :------------ | :-------------- |
@@ -20,5 +22,5 @@ home.  I hope you enjoy them.
 | wake-host     | use `ether-wake` to wake a host |
 
 For more detailed information on the scripts, see the source for the
-script.  I recommend that you not run the script without examining it
-first.
+script.  I recommend that you not run the script without examining and
+understanding it first.
