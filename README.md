@@ -17,7 +17,7 @@ home.  I hope you enjoy them.
 | sleepcontrol* | [macOS: scripts for controlling sleep behavior](sleepcontrol.md) |
 | {start,kill}_caffeinate_daemon | keep a macOS machine awake for a period of time |
 | vrsync        | `rsync` a directory and keep versions of it |
-| wake-host     | use ether-way to wake a host |
+| wake-host     | use `ether-wake` to wake a host |
 
 For more detailed information on the scripts, see the source for the
 script.  I recommend that you not run the script without examining it

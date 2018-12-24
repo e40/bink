@@ -116,6 +116,8 @@ exit 0
 # If this code is used again, move this comment to the top of the file:
 #     Depends on: xmlstarlet (I use the macports version)
 
+type -p xmlstarlet > /dev/null || errordie xmlstarlet not installed
+
 d xmlstarlet \
     ed -u \
     '//key[.="CFBundleExecutable"]/following-sibling::string[1]' \
