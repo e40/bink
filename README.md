@@ -12,7 +12,8 @@ home.  I hope you enjoy them.
 | mount_smb     | BSD/MacOSX: mount an SMB share over an SSH tunnel |
 | sleepcontrol* | MacOSX: scripts for controlling sleep behavior |
 | wake-host     | use ether-way to wake a host |
-| bash_*        | utilities to source in .bashrc |
+| bash_sshagent | [automatic SSH agent handling for BASH](bash_sshagent.md) |
+| bash_prompt   | fancy prompt for BASH |
 
 For more detailed information on the scripts, see the source for the
 script.  I recommend that you not run the script without examining it
