@@ -1,4 +1,4 @@
-= Automatic SSH agent handling =
+# Automatic SSH agent handling
 
 The code in bash_sshagent provides BASH support for running a single
 SSH agent on the machines you sit at, and using that agent on the
@@ -7,12 +7,12 @@ $HOME/.bashrc.
 
 It is used daily on macOS, Linux and Windows (via Cygwin).
 
-== Configuration ==
+## Configuration
 
 For the purposes of this document, it is assumed that `$HOME/bink` is
 a clone of the git repository.
 
-=== .bashrc ===
+### .bashrc
 
     # Return true this machine should run an SSH agent, false otherwise.
     # In other words, do I sit at the machine? Then return true.
@@ -45,14 +45,14 @@ All the functions and variables in `bash_sshagent` are prefixed with
 `__my_ssh_` to minimize the chance of collisions with code written by
 others.
 
-=== SSH configuration ===
+### SSH configuration
 
 For SSH agent forwarding to work, you need to use the appropriate
 `ssh` command line arguments (`-A` or `-o ForwardAgent=yes`) or
 `$HOME/.ssh/config` configuration file options using the
 `ForwardAgent` directive.
 
-== Security considerations ==
+## Security considerations 
 
 Having SSH forward agent authentication can represent a security
 problem.  Be aware of where you forward connections and use
