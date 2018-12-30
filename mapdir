@@ -1,0 +1,155 @@
+#! /usr/bin/env bash
+
+set -eu
+
+me=$(basename $0)
+
+function usage {
+    [ "${*-}" ] && echo "$me: $*" 1>&2
+    cat 1>&2 <<EOF
+Usage: $me [-n] [-h] directory ext prog [args]
+
+'prog' is called, with args (see below), on each file in 'directory'
+which has file type 'ext'.   'args' must contain at least one argument,
+from the following two-character sequences.  They are converted as
+follows, where 'file' refers to the matching file:
+
+    %p => full pathname of file
+    %d => dirname of file
+    %b => basename of file
+    %n => basename of file sans type
+
+Options:
+
+-n :: do not execute, just print the commands
+-h :: ignore hidden files (ones that start with a dot)
+
+Examples:
+
+    \$ $me \$HOME md \$HOME/bin/convert-md-to-html -o %n.html %b
+    \$ $me \$HOME md /bin/echo %p
+EOF
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$me: $*" 1>&2
+    exit 1
+}
+
+ignorehidden=
+noexecute=
+
+while [ $# -gt 0 ]; do
+    case $1 in
+	-h)      ignorehidden=$1 ;;
+	-n)      noexecute=$1 ;;
+	-*)      usage unknown command line argument: $1 ;;
+	*)       break ;;
+    esac
+    shift
+done
+
+[ $# -ge 4 ] || usage too few arguments: $*
+
+directory=$1; shift
+ext=$1      ; shift
+prog=$1     ; shift
+
+# There is at least one argument
+origin_args="$@"
+
+[ -d "$directory" ]  || usage directory $directory does not exist
+
+[ -L "$prog" ]     && prog="$(readlink "$prog")"
+if [ -x "$prog" ]; then
+    : # given pull path to prog
+elif type -p "$prog" > /dev/null; then
+    : # exists as a command
+else
+    usage program $prog does not exist
+fi
+
+# Input:  pathname [args ...]
+# Output: [args ...] substituted with %x patterns.
+function substitute {
+    local p="$1"
+    shift
+    local d="$(dirname "$p")"
+    local b="$(basename "$p")"
+    local n="${b%.*}"
+
+    for arg in "$@"; do
+	echo $arg | substitute_sed
+	echo -n " "
+    done
+}
+function substitute_sed {
+    local res=$(sed -e "s|%p|$p|g" -e "s|%d|$d|g" -e "s|%b|$b|g" -e "s|%n|$n|g")
+    # If the expansion has a space in it, we need to quote it
+    if [[ "$res" =~ \  ]]; then
+	echo -n \"$res\"
+    else
+	echo -n $res
+    fi
+}
+
+# Check that arguments have at least one %x sequence.
+[ "$*" = "$(substitute /a/b/c.txt $*)" ] &&
+    usage did not find any % escapes
+
+n=0
+
+tempnames=/tmp/mapdirN$$
+script=/tmp/mapdirS$$
+rm -f $tempnames $script
+trap "/bin/rm -f $tempnames; echo ERROR executing this script: $script" EXIT
+
+if [ "$ignorehidden" ]; then
+    find $directory -iname "[^.]*${ext}" -print > $tempnames
+else
+    find $directory -name "*${ext}" -print > $tempnames
+fi
+wc=($(wc -l $tempnames))
+max=${wc[0]}
+
+## For some reason, executing the commands in a `while' loop
+## reading from $tempnames exits after the first one.  So, convert
+## it to a script that prints progress.
+
+cat > $script <<EOF
+#! /usr/bin/env bash
+
+set -eu
+
+EOF
+chmod 755 $script
+
+{
+    IFS=
+    while read line; do
+	n=$(( n + 1 ))
+	echo echo =============== $prog: doing $n of $max >> $script
+	echo $prog $(substitute "$line" $@)               >> $script
+    done <<< "$(cat $tempnames)"
+
+    rm -f $tempnames
+
+    if [ "$noexecute" ]; then
+	cat <<EOF
+Would have executed script $script
+Contents:
+$(cat $script)
+EOF
+    else
+	$script
+    fi
+
+    rm -f $script
+    if [ "$noexecute" ]; then
+	trap "" EXIT
+    else
+	trap "echo $me: SUCCESS" EXIT
+    fi
+    exit 0
+}
