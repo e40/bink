@@ -103,7 +103,24 @@ n=0
 tempnames=/tmp/mapdirN$$
 script=/tmp/mapdirS$$
 rm -f $tempnames $script
-trap "/bin/rm -f $tempnames; echo ERROR executing this script: $script" EXIT
+
+# remove $script on SIGINT, but leave it around for debugging should
+# the program dies, for some reason.
+trap _my_trap_EXIT_handler EXIT
+trap _my_trap_INT_handler  INT
+
+function _my_trap_EXIT_handler {
+    echo "# EXIT: removing $tempnames" 1>&2
+    /bin/rm -f $tempnames
+    if [ -f "$script" ]; then
+	echo "ERROR executing this script: $script"
+    fi
+}
+
+function _my_trap_INT_handler {
+    echo "# SIGINT: removing $script" 1>&2
+    /bin/rm -f $script
+}
 
 if [ "$ignorehidden" ]; then
     find $directory -iname "[^.]*${ext}" -print > $tempnames
