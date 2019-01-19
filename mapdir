@@ -70,6 +70,10 @@ else
     usage program $prog does not exist
 fi
 
+function quote_for_sed {
+    sed -e 's,&,\\\&,g'
+}
+
 # Input:  pathname [args ...]
 # Output: [args ...] substituted with %x patterns.
 function substitute {
@@ -85,7 +89,11 @@ function substitute {
     done
 }
 function substitute_sed {
-    local res=$(sed -e "s|%p|$p|g" -e "s|%d|$d|g" -e "s|%b|$b|g" -e "s|%n|$n|g")
+    local pp="$(echo $p | quote_for_sed)"
+    local dd="$(echo $d | quote_for_sed)"
+    local bb="$(echo $b | quote_for_sed)"
+    local nn="$(echo $n | quote_for_sed)"
+    local res="$(sed -e "s|%p|$pp|g" -e "s|%d|$dd|g" -e "s|%b|$bb|g" -e "s|%n|$nn|g")"
     # If the expansion has a space in it, we need to quote it
     if [[ "$res" =~ \  ]]; then
 	echo -n \"$res\"
@@ -147,6 +155,7 @@ chmod 755 $script
     while read line; do
 	n=$(( n + 1 ))
 	echo echo =============== $prog: doing $n of $max >> $script
+	echo date                                         >> $script
 	echo $prog $(substitute "$line" $@)               >> $script
     done <<< "$(cat $tempnames)"
 
