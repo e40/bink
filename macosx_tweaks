@@ -199,6 +199,9 @@ d "Disable smart quotes" \
 d "Disable smart dashes" \
   NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
 
+d "Disable App Nap" \
+  NSGlobalDomain NSAppSleepDisabled -bool YES
+
 d "Enable the debug menu in Disk Utility" \
   com.apple.DiskUtility DUDebugMenuEnabled -bool true
 d "Enable the advanced image options in Disk Utility" \
