@@ -14,6 +14,11 @@ fi
 # Allow scripts to turn this off.
 [ "${INHIBIT_SSH_AGENT-}" ] && return
 
+# Abort when using sudo
+[ "${__my_ssh_agent_user-}" ] && 
+    [ "${USER}" != "${__my_ssh_agent_user}" ] &&
+    return
+
 #################### sanity checks
 
 if ! type -p __my_ssh_run_agent_p > /dev/null; then
