@@ -225,7 +225,7 @@ sudo $port install openssh
 # fwknop-client because I need to knock
 # wget because it's handy
 sudo $port install autossh bash coreutils git fwknop-client wget
-sudo $port install moreutils perl5 gnutar
+sudo $port install moreutils perl5 gnutar grep
 
 ## don't install unless really necessary, since it pulls
 ## in a LOT of stuff and takes forever.
