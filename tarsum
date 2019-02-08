@@ -1,0 +1,108 @@
+#! /usr/bin/env bash
+# sum the size of directories in a tar file
+
+set -eu
+#set -o pipefail
+
+prog="$(basename "$0")"
+
+function usage {
+    [ "${*-}" ] && echo "$prog: Error: $*" 1>&2
+    cat 1>&2 <<EOF
+Usage: $prog tarfiles...
+
+Print a sorted summation of the space used by directories in the tar file.
+EOF
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$prog: Error: $*" 1>&2
+    exit 1
+}
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        -*) usage unknown argument: $1 ;;
+        *)  break ;;
+    esac
+    shift
+done
+
+[ $# -gt 0 ] || errordie usage no files
+
+tempfile=/tmp/temp$$
+rm -f $tempfile
+trap "/bin/rm -f $tempfile" EXIT
+
+function parent_of {
+    local dir="$1"
+    # remove trailing slash, if there
+    if [[ "$dir" =~ (.*)/$ ]]; then
+	dir="${BASH_REMATCH[1]}"
+    fi
+    if [[ ! "$dir" =~ / ]]; then
+	return 1
+    fi
+    local base="${dir##*/}"
+    echo "${dir%"$base"}"
+}
+
+#dir='Takeout/Google Play Music/Playlists/E-40/Tracks/Break Ya Ankles [feat. Shawty Lo].csv'
+#while parent="$(parent_of "$dir")"; do
+#    echo parent=$parent
+#    dir=$parent
+#done
+#exit 1
+
+declare -A _dirs
+
+for tarfile in "$@"; do
+    if [[ $tarfile =~ \.tgz$ ]]; then
+	z=z
+    else
+	z=
+    fi
+    tar ${z}tvf $tarfile > $tempfile || errordie tar failed
+
+    re='^-.........\ [0-9]+/[0-9]+\ +([0-9]+)\ ....-..-..\ ..:..\ (.*)$'
+    while read line; do
+	if [[ $line =~  $re ]]; then
+	    size="${BASH_REMATCH[1]}"
+	    file="${BASH_REMATCH[2]}"
+	elif [[ $line =~ ^d ]]; then
+	    continue
+	else
+	    errordie could not parse: $line
+	fi
+
+	base=${file##*/}
+	dir=${file%$base}
+	_dirs[$dir]=$(( ${_dirs[$dir]-0} + size ))
+    done <<< "$(cat "$tempfile")"
+
+    # sum children in the parent, by iterating over all _dirs,
+    # adding their size to the parent's
+### this adds too much, figure it out later
+#    for dir in "${!_dirs[@]}"; do
+#	if [[ ! "$dir" =~ /$ ]]; then
+#	    continue
+#	fi
+#	echo dir=$dir
+#	while parent="$(parent_of "$dir")"; do
+#	    echo "  parent: $parent"
+#	    if [ "${_dirs[$parent]-}" ]; then
+#		_dirs[$parent]=$(( ${_dirs[$parent]} + ${_dirs[$dir]} ))
+#		echo "     add: ${_dirs[$parent]} + ${_dirs[$dir]}"
+#	    else
+#		_dirs[$parent]=${_dirs[$dir]}
+#		echo "     add: ${_dirs[$dir]}"
+#	    fi
+#	    dir="$parent"
+#	done
+#    done
+
+    for dir in "${!_dirs[@]}"; do
+	printf "%'18d %s\\n" ${_dirs[$dir]} "$dir"
+    done | sort -r -n
+done
