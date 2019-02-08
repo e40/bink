@@ -58,19 +58,19 @@ function parent_of {
 declare -A _dirs
 
 for tarfile in "$@"; do
-    if [[ $tarfile =~ \.tgz$ ]]; then
-	z=z
-    else
-	z=
-    fi
+    case "$tarfile" in
+	*.tgz)  z=z ;;
+	*.tbz2) z=j ;;
+	*)      z=  ;;
+    esac
     tar ${z}tvf $tarfile > $tempfile || errordie tar failed
 
-    re='^-.........\ [0-9]+/[0-9]+\ +([0-9]+)\ ....-..-..\ ..:..\ (.*)$'
+    re='^-.........\ [A-Za-z0-9]+/[A-Za-z0-9]+\ +([0-9]+)\ ....-..-..\ ..:..\ (.*)$'
     while read line; do
 	if [[ $line =~  $re ]]; then
 	    size="${BASH_REMATCH[1]}"
 	    file="${BASH_REMATCH[2]}"
-	elif [[ $line =~ ^d ]]; then
+	elif [[ $line =~ ^[hd] ]]; then
 	    continue
 	else
 	    errordie could not parse: $line
