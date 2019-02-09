@@ -200,7 +200,7 @@ d "Disable smart dashes" \
   NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
 
 d "Disable App Nap" \
-  NSGlobalDomain NSAppSleepDisabled -bool YES
+  NSGlobalDomain NSAppSleepDisabled -bool true
 
 d "Enable the debug menu in Disk Utility" \
   com.apple.DiskUtility DUDebugMenuEnabled -bool true
