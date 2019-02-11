@@ -4,6 +4,7 @@
 
 # uncomment to turn on debugging
 #set -x
+[ "${MY_DEBUG_SSHAGENT-}" ] && set -x
 
 # For machines that are not running at least BASH version 4, just silently
 # exit, since the code here uses >=4 features.
