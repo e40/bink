@@ -93,7 +93,16 @@ type -p ss > /dev/null && __my_ssh_have_ss=xxx
 
 # Return true if SSH_AUTH_SOCK is connected to a running process.
 # Try ss first, then lsof.  ss is more reliable, I have found.
+# If neither lsof nor ss are installed, we can't really test
+# that the socket is valid, so return success in that case, and let
+# our caller do other tests to check for a valid agent.
 function __my_ssh_auth_sock_valid_p {
+    # If the file doesn't exist, then we're done.
+    [ -S "$SSH_AUTH_SOCK" ] || return 1
+
+    # If lsof and ss are not installed, we're done.
+    [ "${__my_ssh_have_ss}${__my_ssh_have_lsof}" ] || return 0 
+
     local usock=$SSH_AUTH_SOCK
     [ -L $usock ] && usock=$(readlink $usock)
 
@@ -133,6 +142,8 @@ function __my_ssh_connected_to_agent_p {
 	# the SSH_AUTH_SOCK value so cron can use it.
 
 	__my_ssh_auth_sock_valid_p || return 1
+	# if we get here, we might or might not have a valid
+	# SSH_AUTH_SOCK.  More tests needed to know...
 	    
 	if __my_ssh_have_one_identity_p; then
 	    # We have an identity, so the connection to the agent
