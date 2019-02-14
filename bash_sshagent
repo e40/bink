@@ -1,6 +1,11 @@
 #! /bin/bash
 # Decide when and where to run an SSH agent.
-# See the discussion in bink/bash_sshagent.txt.
+# See the discussion in bink/bash_sshagent.md.
+
+# NOTE: SSH_AUTH_SOCK, when created by a forwarded agent, is only
+#       good for the duration of the ssh command that set it.  Once
+#       that command exits, the SSH_AUTH_SOCK value is no longer valid.
+#       It does no good to save this value and use it later.
 
 # uncomment to turn on debugging
 #set -x
@@ -58,10 +63,6 @@ fi
 
 # Info saved about an agent we start here goes into this file:
 __my_agent_info="$HOME/tmp/agent.info"
-
-# Info saved about a forwarded agent goes into this file, for use by
-# scripts and cron jobs:
-__my_agent_info2="$HOME/tmp/agent.info2"
 
 # Return true if there is at least 1 key in the agent.
 function __my_ssh_have_one_identity_p {
@@ -122,50 +123,30 @@ function __my_ssh_auth_sock_valid_p {
     return 1
 }
 
-# Return true if an agent is running, false otherwise.
-# Used by .bash_prompt.
-function __my_ssh_connected_to_agent_p {
-    # If we have a PID, then make sure it's valid
+# Return true if an agent is accessible, false otherwise.
+function __my_connected_to_ssh_agent_p {
     if [ "${SSH_AGENT_PID-}" ]; then
 	if ps -p $SSH_AGENT_PID > /dev/null; then
-	    __my_ssh_have_one_identity_p && return 0
+	    # the process is alive, assume it's OK
+	    return 0
 	else
+	    # no process, but since the variable exists, return false
 	    return 1
 	fi
     fi
+    # no SSH_AGENT_PID, check for a forwarded agent...
 
-    # Check for a forwarded agent
-    [ "${SSH_AUTH_SOCK}" ] && [ -r "${SSH_AUTH_SOCK}" ] && {
-	# An agent might be running.
-	# Before returning success, if there is at least one
-	# identity and we're on my home machine, then save
-	# the SSH_AUTH_SOCK value so cron can use it.
+    [ "${SSH_AUTH_SOCK-}" ] &&
+	[ -S "${SSH_AUTH_SOCK}" ] &&
+	__my_ssh_auth_sock_valid_p &&
+	return 0
 
-	__my_ssh_auth_sock_valid_p || return 1
-	# if we get here, we might or might not have a valid
-	# SSH_AUTH_SOCK.  More tests needed to know...
-	    
-	if __my_ssh_have_one_identity_p; then
-	    # We have an identity, so the connection to the agent
-	    # must be valid.
-	    __my_ssh_run_agent_p && {
-		# A forwarded agent is on my home machine, so
-		# save the SSH_AUTH_SOCK for use by cron jobs.
-		echo "export SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" \
-		     > ${__my_agent_info2}
-	    }
-	    return 0
-	else
-	    rm -f ${__my_agent_info2}
-	fi
-    }
-
-    # assume it is not running
+    # no agent running or accessible
     return 1
 }
 
 function __my_ssh_agent_prompt_string {
-    __my_ssh_connected_to_agent_p || return 0
+    __my_connected_to_ssh_agent_p || return 0
     if __my_ssh_have_one_identity_p; then
 	echo -n "@"
     else
@@ -185,42 +166,27 @@ function __my_ssh_agent_prompt_string {
 __my_ssh_run_agent_p || return
 ###############################################################################
 
-# Either connect to an exiting or start a new SSH agent.
+# Either connect to an exiting SSH agent or start a new one.
 function __my_ssh_initialize_agent {
-    # IMPORTANT:
-    #   We MUST check for a forwarded agent first, otherwise we might
-    #   needlessly create locally running agents.
-
-    # Check for a saved forwarded agent info.  This is only used
-    # when running scripts from cron.
-    if [ -f "${__my_agent_info2}" ]; then
-	source ${__my_agent_info2} > /dev/null
-
-	__my_ssh_connected_to_agent_p && return 0
-	
-	echo NOTE: ${__my_agent_info2} is stale, removing 1>&2
-	rm -f ${__my_agent_info2} 
-    fi
-
     if [ -f "${__my_agent_info}" ]; then
 	source ${__my_agent_info} > /dev/null
 
-	__my_ssh_connected_to_agent_p && return 0
+	__my_connected_to_ssh_agent_p && return 0
 
 	echo NOTE: ${__my_agent_info} is stale, removing 1>&2
 	rm -f ${__my_agent_info} 
     fi
 
-    # if we get here, we could not connect to an agent, so start one...
+    # if we get here, we could not connect to an agent, so start one
 
     ssh-agent -s > ${__my_agent_info} &&
-    source ${__my_agent_info} > /dev/null &&
-    echo NOTE: start new SSH agent: PID=$SSH_AGENT_PID 1>&2
+	source ${__my_agent_info} > /dev/null &&
+	echo NOTE: start new SSH agent: PID=$SSH_AGENT_PID 1>&2
     chmod 600 ${__my_agent_info}
 }
 
 ###############################################################################
 
-__my_ssh_connected_to_agent_p || __my_ssh_initialize_agent
+__my_connected_to_ssh_agent_p || __my_ssh_initialize_agent
 
 __my_ssh_ensure_default_identities
