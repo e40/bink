@@ -1,9 +1,9 @@
 # Automatic SSH agent handling
 
 The code in bash_sshagent provides BASH support for running a single
-SSH agent on the machines you sit at, and using that agent on the
-network of machines that you use.  The file is intended to be sourced by
-$HOME/.bashrc.
+SSH agent on the machines you sit at (RDP into a machine counts as
+sitting at), and using that agent on the network of machines that you
+use.  The file is intended to be sourced by $HOME/.bashrc.
 
 It is used daily on macOS, Linux and Windows (via Cygwin).
 
@@ -11,6 +11,11 @@ It is used daily on macOS, Linux and Windows (via Cygwin).
 
 For the purposes of this document, it is assumed that `$HOME/bink` is
 a clone of the git repository.
+
+Note that `$HOME/tmp/` is assumed to exist and is used to store the
+details of an agent when it is started, so `cron` jobs on that machine
+will be able to use the agent.  The file is `chmod`ed to `600`, so it
+is not readable by non-root users.
 
 ### .bashrc
 
