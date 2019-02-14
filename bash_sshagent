@@ -98,8 +98,8 @@ type -p ss > /dev/null && __my_ssh_have_ss=xxx
 # that the socket is valid, so return success in that case, and let
 # our caller do other tests to check for a valid agent.
 function __my_ssh_auth_sock_valid_p {
-    # If the file doesn't exist, then we're done.
-    [ -S "$SSH_AUTH_SOCK" ] || return 1
+    # If the file does not exist and is not a socket, then we're done.
+    [ -S "${SSH_AUTH_SOCK-}" ] || return 1
 
     # If lsof and ss are not installed, we're done.
     [ "${__my_ssh_have_ss}${__my_ssh_have_lsof}" ] || return 0 
@@ -134,12 +134,9 @@ function __my_connected_to_ssh_agent_p {
 	    return 1
 	fi
     fi
-    # no SSH_AGENT_PID, check for a forwarded agent...
+    # fall through: no SSH_AGENT_PID, check for a forwarded agent...
 
-    [ "${SSH_AUTH_SOCK-}" ] &&
-	[ -S "${SSH_AUTH_SOCK}" ] &&
-	__my_ssh_auth_sock_valid_p &&
-	return 0
+    __my_ssh_auth_sock_valid_p && return 0
 
     # no agent running or accessible
     return 1
