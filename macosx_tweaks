@@ -3,7 +3,17 @@
 # It can be run any number of times and it will tell you what it changes,
 # in case settings get reverted.
 
+# recent ideas from:
+# https://raw.githubusercontent.com/mathiasbynens/dotfiles/master/.macos
+
 set -eu
+
+# Close any open System Preferences panes, to prevent them from overriding
+# settings we’re about to change
+osascript -e 'tell application "System Preferences" to quit'
+
+# Ask for the administrator password upfront
+sudo -v
 
 function errordie {
     echo "Error: $*" 1>&2
@@ -11,6 +21,7 @@ function errordie {
 }
 
 restart_finder=
+restart_systemuiserver=
 
 # Like "defaults write ..." but prints first arg to STDOUT if a
 # change is made, nothing otherwise.
@@ -30,9 +41,6 @@ function d {
     #   -int[eger] <integer_value>
     # we punt on all others
 
-    write="echo $description"
-    write="$write; defaults write \"$domain\" \"$key\" $@"
-
     if current=$(defaults read "$domain" "$key" 2>/dev/null); then
 	# value for key exists, see if it's the same as what we want
 	# it to be
@@ -42,7 +50,8 @@ function d {
 		: # Nothing to do
 	    else
 		old=$current
-		eval "$write"
+		echo $description
+		defaults write "$domain" "$key" "$@"
 		echo "   ****** old value was: $old"
 		changed=yes
 	    fi
@@ -63,14 +72,16 @@ function d {
 		: # Nothing to do
 	    else
 		old=$current
-		eval "$write"
+		echo $description
+		defaults write "$domain" "$key" "$@"
 		echo "   ****** old value was: $old"
 		changed=yes
 	    fi
 	fi
     else
 	# didn't exist, write it
-	eval "$write"
+	echo $description
+	defaults write "$domain" "$key" "$@"
 	echo "   NEW SETTING"
 	changed=yes
     fi
@@ -79,6 +90,9 @@ function d {
 	restart_finder=xxx
     fi
 
+    if [ "$domain" = "com.apple.menuextra.clock" ] && [ "$changed" ]; then
+	restart_systemuiserver=xxx
+    fi
 }
 
 d "Suppress Apple Photos from start on hotplug of cameras" \
@@ -109,6 +123,13 @@ d "Ask for password when wake from sleep/screensaver" \
 d "Password delay to 6 seconds" \
   com.apple.screensaver askForPasswordDelay -int 60
 
+d "Set menubar date format" \
+  com.apple.menuextra.clock DateFormat "MMM d  h:mm a"
+
+[ "$USER" = "layer" ] &&
+    d "Disable \"Are you sure you want to open this application?\" dialog" \
+      com.apple.LaunchServices LSQuarantine -bool false
+
 ############## Finder...
 
 d "Use list view in all Finder windows" \
@@ -123,12 +144,20 @@ d "Show path bar in Finder"   com.apple.finder ShowPathbar -bool true
 d "Display full POSIX path as Finder window title" \
   com.apple.finder _FXShowPosixPathInTitle -bool true
 
+d "Keep folders on top when sorting by name" \
+  com.apple.finder _FXSortFoldersFirst -bool true
+
+d "Search the current folder by default" \
+  com.apple.finder FXDefaultSearchScope -string "SCcf"
+
 d "Disable the warning when changing a file extension" \
   com.apple.finder FXEnableExtensionChangeWarning -bool false
 
 d "Disable window animations and Get Info animations" \
   com.apple.finder DisableAllAnimations -bool true
 
+# For other paths, use `PfLo` and `file:///full/path/here/`
+#defaults write com.apple.finder NewWindowTarget -string "PfLo"
 # Set Applications as the default location for new Finder windows
 d "New Finder windows start in /Applications" \
   com.apple.finder NewWindowTargetPath -string "file:///Applications/"
@@ -137,12 +166,6 @@ d "Do not show recent tags" com.apple.finder ShowRecentTags -bool false
 
 # Too annoying
 d "Do NOT show hidden files" com.apple.finder AppleShowAllFiles -bool false
-
-# So hidden files here:
-chflags nohidden ~/Library
-
-# For other paths, use `PfLo` and `file:///full/path/here/`
-#defaults write com.apple.finder NewWindowTarget -string "PfLo"
 
 d "Show all filename extensions in Finder" \
   NSGlobalDomain AppleShowAllExtensions -bool true
@@ -154,14 +177,49 @@ d "Show all filename extensions in Finder" \
 
 d "Avoid the creation of .DS_Store files on network volumes" \
   com.apple.desktopservices DSDontWriteNetworkStores -bool true
+d "Avoid the creation of .DS_Store files on USB drives" \
+  com.apple.desktopservices DSDontWriteUSBStores -bool true
 
 d "Disable the warning before emptying the Trash" \
   com.apple.finder WarnOnEmptyTrash -bool false
 
-# Show the ~/Library folder for me
-[ "$USER" = "layer" ] && chflags nohidden ~/Library
+# Show the ~/Library and /Volumes
+[ "$USER" = "layer" ] &&
+    chflags nohidden ~/Library
+[ "$USER" = "layer" ] &&
+    sudo chflags nohidden /Volumes
 
 ############## ...Finder
+
+# Hot corners
+# Possible values:
+#  0: no-op
+#  2: Mission Control
+#  3: Show application windows
+#  4: Desktop
+#  5: Start screen saver
+#  6: Disable screen saver
+#  7: Dashboard
+# 10: Put display to sleep
+# 11: Launchpad
+# 12: Notification Center
+# Bottom left screen corner → Start screen saver
+d "Hot corner bottom left, part1" com.apple.dock wvous-bl-corner -int 10
+d "Hot corner bottom left, part2" com.apple.dock wvous-bl-modifier -int 0
+
+d "Show the main window when launching Activity Monitor" \
+  com.apple.ActivityMonitor OpenMainWindow -bool true
+
+d "Visualize CPU usage in the Activity Monitor Dock icon" \
+  com.apple.ActivityMonitor IconType -int 5
+
+d "Show all processes in Activity Monitor" \
+  com.apple.ActivityMonitor ShowCategory -int 0
+
+d "Sort Activity Monitor results by CPU usage" \
+  com.apple.ActivityMonitor SortColumn -string "CPUUsage"
+d "Sort Activity Monitor direction" \
+  com.apple.ActivityMonitor SortDirection -int 0
 
 d "Minimize windows into their app icon" \
   com.apple.dock minimize-to-application -bool true
@@ -190,6 +248,10 @@ d "KeyRepeat" NSGlobalDomain KeyRepeat -int 2
 d "Terminal: copy attributes from Basic profile" \
   com.apple.Terminal CopyAttributesProfile Basic
 
+# See: https://security.stackexchange.com/a/47786/8918
+d "Enable Secure Keyboard Entry in Terminal.app" \
+  com.apple.terminal SecureKeyboardEntry -bool true
+
 d "Disable iCloud save default" \
   NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
 
@@ -212,7 +274,11 @@ d "Enable Debug Menu in the Mac App Store" \
 
 d "Chrome: Use the system-native print preview dialog" \
   com.google.Chrome DisablePrintPreview -bool true
+
 [ "$restart_finder" ] && killall Finder
+[ "$restart_systemuiserver" ] && 
+    echo "starting system UI server" &&
+    killall -KILL SystemUIServer
 
 port="port -N"
 
@@ -273,7 +339,14 @@ if grep -q -F apple.com $capnetsupsettings; then
 fi
 
 # Last, remove bogus CAs
-./macosx_rm_cas.sh
+#./macosx_rm_cas.sh
+
+# Restart automatically if the computer freezes
+sudo systemsetup -setrestartfreeze on
+
+# Never go into computer sleep mode
+[ "$USER" = "layer" ] &&
+    sudo systemsetup -setcomputersleep Off > /dev/null
 
 exit 0
 
