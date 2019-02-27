@@ -9,6 +9,14 @@
 
 # uncomment to turn on debugging
 #set -x
+# How to use MY_DEBUG_SSHAGENT:
+# Server:
+#  - put this into /etc/ssh/sshd_config
+#    AcceptEnv MY_DEBUG_SSHAGENT
+#  - send HUP signal to sshd process
+# Client:
+#   $ MY_DEBUG_SSHAGENT=xxx ssh -o SendEnv=MY_DEBUG_SSHAGENT gremlin date
+
 [ "${MY_DEBUG_SSHAGENT-}" ] && set -x
 
 # For machines that are not running at least BASH version 4, just silently
@@ -67,8 +75,10 @@ __my_agent_info="$HOME/tmp/agent.info"
 # Return true if there is at least 1 key in the agent.
 function __my_ssh_have_one_identity_p {
     if ssh-add -l &>/dev/null; then
+	[ "${MY_DEBUG_SSHAGENT-}" ] && echo have one identity: YES 1>&2
 	return 0
     else
+	[ "${MY_DEBUG_SSHAGENT-}" ] && echo have one identity: NO 1>&2
 	return 1
     fi
 }
@@ -78,6 +88,7 @@ function __my_ssh_ensure_default_identities {
     local fps=(${__my_ssh_default_identity_md5})
     local n=${#ids[@]}
     local i=0
+    [ "${MY_DEBUG_SSHAGENT-}" ] && ssh-add -E md5 -l 1>&2
     while [ $i -lt $n ]; do
 	if ! ssh-add -E md5 -l 2>/dev/null | grep -q ${fps[$i]}; then
 	    echo NOTE: adding identity ${ids[$i]} 1>&2
@@ -130,6 +141,7 @@ function __my_connected_to_ssh_agent_p {
 	    # the process is alive, assume it's OK
 	    return 0
 	else
+	    [ "${MY_DEBUG_SSHAGENT-}" ] && NO AGENT 1>&2
 	    # no process, but since the variable exists, return false
 	    return 1
 	fi
@@ -139,6 +151,7 @@ function __my_connected_to_ssh_agent_p {
     __my_ssh_auth_sock_valid_p && return 0
 
     # no agent running or accessible
+    [ "${MY_DEBUG_SSHAGENT-}" ] && NO AGENT 1>&2
     return 1
 }
 
