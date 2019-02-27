@@ -96,9 +96,7 @@ function __do_acl_build_env_setup {
     [ -f makefile.m -a -f env.sh -a -f ../makefile.top ] && source env.sh
 }
 
-# Breaks emacsclient on non-ssh-only machines. Need to fix that, if
-# that's even possible.
-function DISABLEDcd {
+function cd {
     # lockf(3) doesn't work on FreeBSD on an NFS-mounted filesystem, so
     # remove the /net/<host> so ACL tests work on FreeBSD, when on
     # the same host.  This solution works quite nicely with Emacs'
@@ -121,9 +119,6 @@ function DISABLEDcd {
 	fi
     fi
     builtin cd "$dir" && __do_acl_build_env_setup
-}
-function cd {
-    builtin cd "$@" && __do_acl_build_env_setup
 }
 
 function pushd {
