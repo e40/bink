@@ -96,13 +96,32 @@ function __do_acl_build_env_setup {
     [ -f makefile.m -a -f env.sh -a -f ../makefile.top ] && source env.sh
 }
 
+# usage: __my_localize_path path
+#  return a local version of PATH if it uses NFS to access a resource
+#  on the same machine, as given by $MACH.
 function __my_localize_path {
     # lockf(3) doesn't work on FreeBSD on an NFS-mounted filesystem, so
     # remove the /net/<host> so ACL tests work on FreeBSD, when on
     # the <host>.  This solution works quite nicely with directory tracking
     # in Emacs.  See also scm-bin/fiemacsclient for hacks to handle the
     # case where emacs and emacsclient are run on different machines.
-    local dir="$@"
+    local dir="$1"
+
+    if [ ! -e "$dir" ]; then
+	echo $dir does not exist 1>&2
+	return 1
+    fi
+
+    # This is specific to me.  I use symlinks in ~/l/ to find various
+    # things.
+    if [[ "$dir" =~ ^$HOME/l/ ]]; then
+	dir="$(readlink "$dir")"
+	if [ ! -e "$dir" ]; then
+	    echo expansion points to nonexistent $dir 1>&2
+	    return 1
+	fi
+    fi
+
     if [[ "$dir" =~ ^/net/([^/]+)(/.*) ]]; then
 	if [ "${BASH_REMATCH[1]}" = "$MACH" ]; then
 	    dir="${BASH_REMATCH[2]}"
