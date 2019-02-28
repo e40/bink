@@ -123,11 +123,15 @@ function cd {
 }
 
 function pushd {
-    local n=$(( ${#@} - 1 ))
-    local args="${@:1:$n}"
-    local dir="${@: -1}"
-    dir="$(__my_localize_path "$dir")"
-    builtin pushd $args "$dir" && __do_acl_build_env_setup
+    if [ $# -eq 0 ]; then
+	builtin pushd && __do_acl_build_env_setup
+    else
+	local n=$(( ${#@} - 1 ))
+	local args="${@:1:$n}"
+	local dir="${@: -1}"
+	dir="$(__my_localize_path "$dir")"
+	builtin pushd $args "$dir" && __do_acl_build_env_setup
+    fi
 }
 
 function popd {
