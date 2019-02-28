@@ -96,33 +96,38 @@ function __do_acl_build_env_setup {
     [ -f makefile.m -a -f env.sh -a -f ../makefile.top ] && source env.sh
 }
 
-function cd {
+function __my_localize_path {
     # lockf(3) doesn't work on FreeBSD on an NFS-mounted filesystem, so
     # remove the /net/<host> so ACL tests work on FreeBSD, when on
-    # the same host.  This solution works quite nicely with Emacs'
-    # directory tracking.
+    # the <host>.  This solution works quite nicely with directory tracking
+    # in Emacs.  See also scm-bin/fiemacsclient for hacks to handle the
+    # case where emacs and emacsclient are run on different machines.
     local dir="$@"
-
-    if [ "$dir" = "." ]; then
-	return
-    fi
-	
-    if [ ! "$dir" ]; then
-	builtin cd
-	return
-    fi
-
     if [[ "$dir" =~ ^/net/([^/]+)(/.*) ]]; then
 	if [ "${BASH_REMATCH[1]}" = "$MACH" ]; then
 	    dir="${BASH_REMATCH[2]}"
-	    echo "#really cd to $dir instead"
+	    echo "[ using local path: $dir ]" 1>&2
 	fi
     fi
-    builtin cd "$dir" && __do_acl_build_env_setup
+    echo "$dir"
+}
+
+function cd {
+    local n=$(( ${#@} - 1 ))
+    local args="${@:1:$n}"
+    local dir="${@: -1}"
+    # accessing $HOME via NFS sucks!
+    [ ! "$dir" ] && dir="$HOME"
+    dir="$(__my_localize_path "$dir")"
+    builtin cd $args "$dir" && __do_acl_build_env_setup
 }
 
 function pushd {
-    builtin pushd "$@" && __do_acl_build_env_setup
+    local n=$(( ${#@} - 1 ))
+    local args="${@:1:$n}"
+    local dir="${@: -1}"
+    dir="$(__my_localize_path "$dir")"
+    builtin pushd $args "$dir" && __do_acl_build_env_setup
 }
 
 function popd {
