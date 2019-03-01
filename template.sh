@@ -52,18 +52,23 @@ function d {
     fi
 }
 
-tempfile=/tmp/temp$$
-rm -f $tempfile
-trap "/bin/rm -f $tempfile" EXIT
+# main body is in a list so the script can be changed while in use
+{
+    tempfile=/tmp/temp$$
+    rm -f $tempfile
+    trap "/bin/rm -f $tempfile" EXIT
 
-find ... > $tempfile
-while read line; do
-    # this stuff happens in the same shell as the main script
-done <<< "$(cat "$tempfile")"
+    find ... > $tempfile
+    while read line; do
+	# this stuff happens in the same shell as the main script
+    done <<< "$(cat "$tempfile")"
 
-find ... |
-while read line; do
-    # this stuff happens in a subshell and can't modify variables above
-done
+    find ... |
+	while read line; do
+	    # this stuff happens in a subshell and can't modify variables above
+	done
 
-...
+    ...
+
+    exit 0
+}
