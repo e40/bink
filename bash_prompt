@@ -137,8 +137,9 @@ function cd {
     local dir="${@: -1}"
     # accessing $HOME via NFS sucks!
     [ ! "$dir" ] && dir="$HOME"
-    dir="$(__my_localize_path "$dir")"
-    builtin cd $args "$dir" && __do_acl_build_env_setup
+    if dir="$(__my_localize_path "$dir")"; then
+	builtin cd $args "$dir" && __do_acl_build_env_setup
+    fi
 }
 
 function pushd {
@@ -148,8 +149,9 @@ function pushd {
 	local n=$(( ${#@} - 1 ))
 	local args="${@:1:$n}"
 	local dir="${@: -1}"
-	dir="$(__my_localize_path "$dir")"
-	builtin pushd $args "$dir" && __do_acl_build_env_setup
+	if dir="$(__my_localize_path "$dir")"; then
+	    builtin pushd $args "$dir" && __do_acl_build_env_setup
+	fi
     fi
 }
 
