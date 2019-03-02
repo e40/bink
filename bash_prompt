@@ -132,11 +132,17 @@ function __my_localize_path {
 }
 
 function cd {
-    local n=$(( ${#@} - 1 ))
-    local args="${@:1:$n}"
-    local dir="${@: -1}"
-    # accessing $HOME via NFS sucks!
-    [ ! "$dir" ] && dir="$HOME"
+    local dir
+    local args
+    if [ $# -eq 0 ]; then
+	# accessing $HOME via NFS sucks!
+	dir="$HOME"
+	args=
+    else
+	local n=$(( ${#@} - 1 ))
+	args="${@:1:$n}"
+	dir="${@: -1}"
+    fi
     if dir="$(__my_localize_path "$dir")"; then
 	builtin cd $args "$dir" && __do_acl_build_env_setup
     fi
