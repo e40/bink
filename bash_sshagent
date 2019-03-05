@@ -7,8 +7,6 @@
 #       that command exits, the SSH_AUTH_SOCK value is no longer valid.
 #       It does no good to save this value and use it later.
 
-# uncomment to turn on debugging
-#set -x
 # How to use MY_DEBUG_SSHAGENT:
 # Server:
 #  - put this into /etc/ssh/sshd_config
@@ -20,6 +18,8 @@
 [ "${MY_DEBUG_SSHAGENT-}" ] && _debug_on sshagent
 ## or unconditionally:
 #_debug_on sshagent
+## or MAX debug
+#set -x
 
 # For machines that are not running at least BASH version 4, just silently
 # exit, since the code here uses >=4 features.
@@ -105,17 +105,17 @@ function __my_ssh_ensure_default_identities {
 # (no identities) and 2 if the ssh-add is unable to contact the agent.
 function __my_ssh_auth_sock_valid_p {
     # If the file does not exist and is not a socket, then we're done.
-    [ -S "${SSH_AUTH_SOCK-}" ] ||
-	(_debug sshagent NO SSH_AUTH_SOCK && return 1)
-
-    ssh-add -l &> /dev/null || true
-    if [ $? -eq 2 ]; then
-	_debug sshagent FAIL: ssh-add could not contact agent
+    [ ! -S "${SSH_AUTH_SOCK-}" ] && 
+	_debug sshagent NO SSH_AUTH_SOCK &&
 	return 1
-    else
-	_debug sshagent SUCCESS: ssh-add could contact agent
-	return 0
-    fi
+
+    local ret=0
+    ssh-add -l &> /dev/null || ret=$?
+    [ $? -eq 2 ] &&
+	_debug sshagent FAIL: ssh-add could not contact agent &&
+	return 1
+    _debug sshagent SUCCESS: ssh-add could contact agent
+    return 0
 }
 
 # Return true if an agent is accessible, false otherwise.
