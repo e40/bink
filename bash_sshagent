@@ -17,7 +17,9 @@
 # Client:
 #   $ MY_DEBUG_SSHAGENT=xxx ssh -o SendEnv=MY_DEBUG_SSHAGENT gremlin date
 
-[ "${MY_DEBUG_SSHAGENT-}" ] && set -x
+[ "${MY_DEBUG_SSHAGENT-}" ] && _debug_on sshagent
+## or unconditionally:
+#_debug_on sshagent
 
 # For machines that are not running at least BASH version 4, just silently
 # exit, since the code here uses >=4 features.
@@ -75,10 +77,10 @@ __my_agent_info="$HOME/tmp/agent.info"
 # Return true if there is at least 1 key in the agent.
 function __my_ssh_have_one_identity_p {
     if ssh-add -l &>/dev/null; then
-	[ "${MY_DEBUG_SSHAGENT-}" ] && echo have one identity: YES 1>&2
+	_debug sshagent have one identity: YES
 	return 0
     else
-	[ "${MY_DEBUG_SSHAGENT-}" ] && echo have one identity: NO 1>&2
+	_debug sshagent have one identity: NO
 	return 1
     fi
 }
@@ -98,50 +100,33 @@ function __my_ssh_ensure_default_identities {
     done
 }
 
-__my_ssh_have_lsof=
-type -p lsof > /dev/null && __my_ssh_have_lsof=xxx
-__my_ssh_have_ss=
-type -p ss > /dev/null && __my_ssh_have_ss=xxx
-
-# Return true if SSH_AUTH_SOCK is connected to a running process.
-# Try ss first, then lsof.  ss is more reliable, I have found.
-# If neither lsof nor ss are installed, we can't really test
-# that the socket is valid, so return success in that case, and let
-# our caller do other tests to check for a valid agent.
+# Return true if SSH_AUTH_SOCK is connected to an agent which
+# is alive.  "ssh-add -l" will return 0 on success, 1 on failure
+# (no identities) and 2 if the ssh-add is unable to contact the agent.
 function __my_ssh_auth_sock_valid_p {
     # If the file does not exist and is not a socket, then we're done.
-    [ -S "${SSH_AUTH_SOCK-}" ] || return 1
+    [ -S "${SSH_AUTH_SOCK-}" ] ||
+	(_debug sshagent NO SSH_AUTH_SOCK && return 1)
 
-    # If lsof and ss are not installed, we're done.
-    [ "${__my_ssh_have_ss}${__my_ssh_have_lsof}" ] || return 0 
-
-    local usock=$SSH_AUTH_SOCK
-    [ -L $usock ] && usock=$(readlink $usock)
-
-    if [ "${__my_ssh_have_ss}" ]; then
-	if ss -l | grep -q $usock; then
-	    return 0
-	fi
-	# fall through...
+    ssh-add -l &> /dev/null || true
+    if [ $? -eq 2 ]; then
+	_debug sshagent FAIL: ssh-add could not contact agent
+	return 1
+    else
+	_debug sshagent SUCCESS: ssh-add could contact agent
+	return 0
     fi
-	
-    if [ "${__my_ssh_have_lsof}" ]; then
-	if lsof -a -U -u$USER 2>/dev/null | grep -q $usock; then
-	    return 0
-	fi
-	# fall through...
-    fi
-    return 1
 }
 
 # Return true if an agent is accessible, false otherwise.
 function __my_connected_to_ssh_agent_p {
     if [ "${SSH_AGENT_PID-}" ]; then
+	_debug sshagent Looking for PID $SSH_AGENT_PID
 	if ps -p $SSH_AGENT_PID > /dev/null; then
 	    # the process is alive, assume it's OK
 	    return 0
 	else
-	    [ "${MY_DEBUG_SSHAGENT-}" ] && NO AGENT 1>&2
+	    _debug sshagent SSH_AGENT_PID not found
 	    # no process, but since the variable exists, return false
 	    return 1
 	fi
@@ -151,7 +136,7 @@ function __my_connected_to_ssh_agent_p {
     __my_ssh_auth_sock_valid_p && return 0
 
     # no agent running or accessible
-    [ "${MY_DEBUG_SSHAGENT-}" ] && NO AGENT 1>&2
+    _debug sshagent NO AGENT FOUND
     return 1
 }
 

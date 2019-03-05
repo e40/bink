@@ -1,5 +1,12 @@
 #! /bin/bash
 # Conditional debugging API
+#
+# How to use:
+#   _debug_on sshagent
+# then later in the code
+#   _debug sshagent FOO THE BAR
+# where "FOO THE BAR" will be printed to stdout if debugging is turned on
+# for sshagent.
 
 # Need BASH 4 for "declare -A".
 if [ ${BASH_VERSINFO[0]} -lt 4 ]; then
@@ -12,16 +19,16 @@ if [ ${BASH_VERSINFO[0]} -lt 4 ]; then
     return 0
 fi
 
-declare -A __debug
+declare -A __my_debug
 
 # Turn debugging on for $1
 function _debug_on {
-    __debug[$1]=nonnull
+    __my_debug[$1]=nonnull
 }
 
 # Turn debugging off for $1
 function _debug_off {
-    __debug[$1]=
+    __my_debug[$1]=
 }
 
 # Output debugging info for $1. Args 2 through n are echo'd to stderr.
@@ -29,7 +36,7 @@ function _debug {
     local thing=$1
     shift
 
-    if [ "${__debug[$thing]-}" ]; then
+    if [ "${__my_debug[$thing]-}" ]; then
 	echo "$@" 1>&2
     fi
     return 0
@@ -39,7 +46,7 @@ function _debug {
 function _debug_p {
     local thing=$1
 
-    if [ "${__debug[$thing]-}" ]; then
+    if [ "${__my_debug[$thing]-}" ]; then
 	return 0
     else
 	return 1
