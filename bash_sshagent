@@ -7,6 +7,29 @@
 #       that command exits, the SSH_AUTH_SOCK value is no longer valid.
 #       It does no good to save this value and use it later.
 
+########################## macOS countermeasures ###############################
+# Starting in Mojave (?), there's an ssh-agent process that is started as
+# soon as any processes of note are launched, like Terminal.  It seems
+# Dock-started programs do it, but it might be for some other reason.
+# This ssh-agent is identifiable because it uses an undocumented -l argument!
+#
+# This shows where it comes from:
+#   launchctl list com.openssh.ssh-agent
+# and if you "/usr/bin/csrutil disable" from recovery
+# you can
+#   launchctl unload -w /System/Library/LaunchAgents/com.openssh.ssh-agent.plist
+#   sudo launchctl disable system/com.openssh.ssh-agent
+# but as soon as you "/usr/bin/csrutil enable" it comes back.
+#
+# It's not even possible to kill the thing, because as soon as a new
+# process is launched from the Dock, like Terminal, a new
+# "ssh-agent -l" is started.
+#
+# So, the trick is to detected the SSH_AUTH_SOCK created by launchd,
+# and null it out, so it's not used.  See __my_ssh_auth_sock_valid_p
+# below.
+###############################################################################
+
 # How to use MY_DEBUG_SSHAGENT:
 # Server:
 #  - put this into /etc/ssh/sshd_config
@@ -104,6 +127,14 @@ function __my_ssh_ensure_default_identities {
 # is alive.  "ssh-add -l" will return 0 on success, 1 on failure
 # (no identities) and 2 if the ssh-add is unable to contact the agent.
 function __my_ssh_auth_sock_valid_p {
+
+    # See note above about macOS countermeasures
+    if [[ $SSH_AUTH_SOCK =~ com\.apple\.launchd ]]; then
+	SSH_AUTH_SOCK=
+	echo NOTE: IGNORE launchd SSH_AUTH_SOCK 1>&2
+	return 1
+    fi
+
     # If the file does not exist and is not a socket, then we're done.
     [ ! -S "${SSH_AUTH_SOCK-}" ] && 
 	_debug sshagent NO SSH_AUTH_SOCK &&
@@ -122,16 +153,13 @@ function __my_ssh_auth_sock_valid_p {
 function __my_connected_to_ssh_agent_p {
     if [ "${SSH_AGENT_PID-}" ]; then
 	_debug sshagent Looking for PID $SSH_AGENT_PID
-	if ps -p $SSH_AGENT_PID > /dev/null; then
-	    # the process is alive, assume it's OK
-	    return 0
-	else
+	if ! ps -p $SSH_AGENT_PID > /dev/null; then
 	    _debug sshagent SSH_AGENT_PID not found
 	    # no process, but since the variable exists, return false
 	    return 1
 	fi
+	# have SSH_AGENT_PID, make sure it's valid...
     fi
-    # fall through: no SSH_AGENT_PID, check for a forwarded agent...
 
     __my_ssh_auth_sock_valid_p && return 0
 
