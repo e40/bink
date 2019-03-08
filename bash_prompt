@@ -112,14 +112,16 @@ function __my_localize_path {
 	return 1
     fi
 
-    # This is specific to me.  I use symlinks in ~/l/ to find various
-    # things.
+    # Do some transformations, so locatization can happen.
+    # The first is layer-specific and the 2nd is company wide.
     if [[ "$dir" =~ ^$HOME/l/ ]]; then
 	dir="$(readlink "$dir")"
 	if [ ! -e "$dir" ]; then
 	    echo expansion points to nonexistent $dir 1>&2
 	    return 1
 	fi
+    elif [[ "$dir" =~ ^/fi/ ]]; then
+	dir="$(builtin cd "$dir"; nfspwd)"
     fi
 
     if [[ "$dir" =~ ^/net/([^/]+)(/.*) ]]; then
