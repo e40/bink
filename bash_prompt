@@ -115,16 +115,23 @@ function __my_localize_path {
 
     # Do some transformations, so locatization can happen.
     # The first is layer-specific and the 2nd is company wide.
+    # Remember that ~/l/.. symlinks can turn into /fi/.. paths.
     if [[ "$dir" =~ ^$HOME/l/ ]]; then
-	if [[ $dir =~ (.*)/ ]]; then
+	if [[ $dir =~ ^(.*)/$ ]]; then
 	    dir="${BASH_REMATCH[1]}"
 	fi
-	dir="$(readlink "$dir")"
-	if [ ! -e "$dir" ]; then
-	    echo expansion points to nonexistent $dir 1>&2
+	temp="$(readlink "$dir")"
+	if [ ! "$temp" ]; then
+	    echo expansion of $dir was null 1>&2
+	    return 1
+	elif [ ! -e "$temp" ]; then
+	    echo expansion of $dir does not exist: $temp 1>&2
 	    return 1
 	fi
-    elif [[ "$dir" =~ ^/fi/ ]]; then
+	dir="$temp"
+    fi
+
+    if [[ "$dir" =~ ^/fi/ ]]; then
 	temp="$(builtin cd "$dir"; nfspwd)"
 	if [[ $temp =~ ^([a-zA-z0-9]+):(/.*) ]]; then
 	    # autofs 'nobind' screws us again!
