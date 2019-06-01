@@ -292,6 +292,7 @@ sudo $port install openssh
 # wget because it's handy
 sudo $port install autossh bash coreutils git fwknop-client wget
 sudo $port install moreutils perl5 gnutar grep
+sudo $port install diffutils jq
 
 ## don't install unless really necessary, since it pulls
 ## in a LOT of stuff and takes forever.
