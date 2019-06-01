@@ -7,7 +7,7 @@ set -o pipefail
 prog="$(basename "$0")"
 
 function usage {
-    [ "${*-}" ] && echo "$prog: Error: $*" 1>&2
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
     cat 1>&2 <<EOF
 Usage: $prog [--switch1] [--switch2 blah]
 
@@ -17,7 +17,7 @@ EOF
 }
 
 function errordie {
-    [ "${*-}" ] && echo "$prog: Error: $*" 1>&2
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
     exit 1
 }
 
