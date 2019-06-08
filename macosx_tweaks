@@ -292,7 +292,9 @@ sudo $port install openssh
 # wget because it's handy
 sudo $port install autossh bash coreutils git fwknop-client wget
 sudo $port install moreutils perl5 gnutar grep
-sudo $port install diffutils jq
+# Needed for ~/bin/backup-1password-vaults
+# jq needed for other things, too.
+sudo $port install diffutils jq parallel
 
 ## don't install unless really necessary, since it pulls
 ## in a LOT of stuff and takes forever.
