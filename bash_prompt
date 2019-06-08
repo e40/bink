@@ -120,7 +120,7 @@ function __my_localize_path {
 	if [[ $dir =~ ^(.*)/$ ]]; then
 	    dir="${BASH_REMATCH[1]}"
 	fi
-	temp="$(readlink "$dir")"
+	temp="$(readlink -f "$dir")"
 	if [ ! "$temp" ]; then
 	    echo expansion of $dir was null 1>&2
 	    return 1
