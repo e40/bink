@@ -29,7 +29,15 @@ The contents of ~/.motd would something like this:
   "message N"
   )
 
+  top_sticky=("...")
+
+  bottom_sticky=("...")
+
 Running $prog will print one of these lines, randomly chosen.
+
+If `top_sticky` and/or `bottom_sticky` are not the null array, then
+print `top_sticky` before the randomly chosen line above, and
+`bottom_sticky` after it.  They are constants for every run.
 EOF
     exit 1
 }
@@ -60,11 +68,28 @@ address="${1-}"
 
 source $HOME/.motd
 
+tempfile=/tmp/temp$$
+rm -f $tempfile
+trap "/bin/rm -f $tempfile" EXIT
+
 n=$(shuf --input-range=0-$(( ${#motd[@]} - 1 )) -n 1)
 
-if [ "$address" ]; then
-    echo "${motd[$n]}" | Mail -s "$subject" $address
-else
-    echo "${motd[$n]}"
+if [ ${#top_sticky[@]} -gt 0 ]; then
+    echo "${top_sticky[0]}"     >> $tempfile
+    echo ""                     >> $tempfile
+    echo "--------------------" >> $tempfile
+    echo ""                     >> $tempfile
+fi
+echo "${motd[$n]}"          >> $tempfile
+if [ ${#bottom_sticky[@]} -gt 0 ]; then
+    echo ""                     >> $tempfile
+    echo "--------------------" >> $tempfile
+    echo ""                     >> $tempfile
+    echo "${bottom_sticky[0]}"  >> $tempfile
 fi
 
+if [ "$address" ]; then
+    cat $tempfile | Mail -s "$subject" $address
+else
+    cat $tempfile
+fi
