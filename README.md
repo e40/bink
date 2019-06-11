@@ -18,6 +18,7 @@ Stackoverflow gets lots of thanks.
 | motd.sh       | print/email a message of the day |
 | mount_smb     | BSD/macOS: mount an SMB share over an SSH tunnel |
 | myrsync       | adds `--max-delete` argument to `rsync` |
+| reload_crontab| reload `$HOME/.crontab.$host` if different |
 | sleepcontrol* | [macOS: scripts for controlling sleep behavior](sleepcontrol.md) |
 | {start,kill}_caffeinate_daemon | keep a macOS machine awake for a period of time |
 | tarsum        | print summation of space used in a tar file |

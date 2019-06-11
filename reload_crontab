@@ -1,0 +1,68 @@
+#! /usr/bin/env bash
+
+set -eu
+set -o pipefail
+
+prog="$(basename "$0")"
+host=$(hostname -s)
+
+function usage {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    cat 1>&2 <<EOF
+Usage: $prog
+
+If \$HOME/.crontab.$host exists, then and see if what is in that
+file is different than the output from this command:
+
+    crontab -l
+
+If not, present it to the user and ask if it should be.
+EOF
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    exit 1
+}
+
+debug=
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --debug) debug=$1 ;;
+        *)       usage unknown argument: $1 ;;
+    esac
+    shift
+done
+
+function d {
+    if [ "$debug" ]; then
+	echo "would: $*"
+    else
+	echo "+ $*"
+        "$@"
+    fi
+}
+
+{
+    tempfile=/tmp/temp$$
+    rm -f $tempfile
+    trap "/bin/rm -f $tempfile" EXIT
+
+    crontab="$HOME/.crontab.$host"
+
+    [ -f "$crontab" ] || errordie $crontab does not exist
+
+    crontab -l > $tempfile
+
+    if ! cmp -s $tempfile $crontab; then
+	diff $tempfile $crontab || true
+	read -p "Do you want to install this crontab? " -n 1 -r
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+	    d crontab $crontab
+	fi
+    fi
+
+    exit 0
+}
