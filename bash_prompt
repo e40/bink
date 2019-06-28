@@ -93,6 +93,8 @@ PROMPT_COMMAND=__my_prompt_prompt_command
 # If the current directory is an ACL binary directory, then
 # source env.sh to setup the build environment.
 function __do_acl_build_env_setup {
+    # This gives an easy way to short circuit the source'ing of env.sh
+    [ "${ENV_SH_DEBUG-}" ] && return 0
     [ -f makefile.m -a -f env.sh -a -f ../makefile.top ] && source env.sh
 }
 
