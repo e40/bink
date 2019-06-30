@@ -1,0 +1,69 @@
+#! /usr/bin/env bash
+
+set -eu
+set -o pipefail
+
+prog="$(basename "$0")"
+
+function usage {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    cat 1>&2 <<EOF
+Usage: $prog [options] source target
+       $prog [options] source ... directory
+
+$prog is just like the system version of mv, but $prog preserves
+the modification date of the file or files as they are moved.
+
+Yes, this is a terrible thing to do if you are backing up files on 
+the filesystem where you use this, because it will undoubtedly confuse
+the backup program.  I have had rare uses for this, however, mainly
+because I was using the date on the file to represent something signficant.
+You have been warned.
+EOF
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    exit 1
+}
+
+debug=
+
+function d {
+    if [ "$debug" ]; then
+	echo "would: $*"
+    else
+	#echo "+ $*"
+        "$@"
+    fi
+}
+
+{
+    args=("$@")
+    len=${#args[@]}
+    lenmo=$(( $len - 1 ))
+    dest=${args[$lenmo]}
+    if [ -d "$dest" ]; then
+	last_is_directory=nonnull
+    else
+	last_is_directory=
+    fi
+    for src in ${args[@]:0:$lenmo}; do
+	if [ "$last_is_directory" ]; then
+	    destfile="$dest/$(basename "$src")"
+	else
+	    destfile="$dest"
+	fi
+
+	# before we move the file, we need to get the timestamp of the file
+	modifytime=$(stat --format='%Y' "$src")
+	accesstime=$(stat --format='%X' "$src")
+
+	d mv "$src" "$destfile"
+
+	d touch -m --date="@${modifytime}" "$destfile"
+	d touch -a --date="@${accesstime}" "$destfile"
+    done
+    exit 0
+}
