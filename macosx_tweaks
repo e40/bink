@@ -280,6 +280,13 @@ d "Chrome: Use the system-native print preview dialog" \
     echo "starting system UI server" &&
     killall -KILL SystemUIServer
 
+###############################################################################
+# MacPorts installs
+
+##
+## NOTE: need this in sync with 
+##          ~/src/config/classes/base-macosx/etc/packages/base-macosx
+
 port="port -N"
 
 # Because the macOS version is old
@@ -291,7 +298,9 @@ sudo $port install openssh
 # fwknop-client because I need to knock
 # wget because it's handy
 sudo $port install autossh bash coreutils git fwknop-client wget
-sudo $port install moreutils perl5 gnutar grep
+# these are just plain handy to have over their macOS counterpart
+# for example, /usr/bin/find doesn't have the -printf argument
+sudo $port install moreutils perl5 gnutar grep findutils man
 # Needed for ~/bin/backup-1password-vaults
 # jq needed for other things, too.
 sudo $port install diffutils jq parallel
@@ -315,6 +324,7 @@ sudo $port install openssl curl
 #### too many dependencies and I only use it on one machine at home, so
 #### make this a manual install
 #sudo $port install xmlstarlet
+###############################################################################
 
 # This should be the default on Mac OS X.  It prevents all processes
 # from getting sudo privs.
