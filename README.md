@@ -24,6 +24,7 @@ Stackoverflow gets lots of thanks.
 | sleepcontrol* | [macOS: scripts for controlling sleep behavior](sleepcontrol.md) |
 | {start,kill}_caffeinate_daemon | keep a macOS machine awake for a period of time |
 | tarsum        | print summation of space used in a tar file |
+| turn-off-spotlight.sh | turn off that Spotlight nonsense |
 | vrsync        | `rsync` a directory and keep versions of it |
 | wake-host     | use `ether-wake` to wake a host |
 
