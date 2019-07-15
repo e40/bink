@@ -41,6 +41,9 @@ function d {
 
 {
     for localfs in $(df --output=target -l | tail -n +2); do
+	# This always gives errors:
+	[[ $localfs =~ /private/var/vm ]] && continue
+
 	d sudo mdutil -i off $localfs
 	d sudo mdutil -X     $localfs
     done
