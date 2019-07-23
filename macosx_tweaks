@@ -283,47 +283,29 @@ d "Chrome: Use the system-native print preview dialog" \
 ###############################################################################
 # MacPorts installs
 
-##
-## NOTE: need this in sync with 
-##          ~/src/config/classes/base-macosx/etc/packages/base-macosx
-
 port="port -N"
 
-# Because the macOS version is old
-sudo $port install openssh
+## KEEP IN SYNC WITH:
+##   ~/src/config/classes/base-macosx/etc/packages/base-macosx
 
-# autossh for mount_smb
-# git because it has security fixes over the Apple one
-# coreutils because ... something needed for scripting?
-# fwknop-client because I need to knock
-# wget because it's handy
-sudo $port install autossh bash coreutils git fwknop-client wget
-# these are just plain handy to have over their macOS counterpart
-# for example, /usr/bin/find doesn't have the -printf argument
-sudo $port install moreutils perl5 gnutar grep findutils man
-# Needed for ~/bin/backup-1password-vaults
-# jq needed for other things, too.
-sudo $port install diffutils jq parallel
+ports="autossh bash coreutils curl diffutils findutils \
+       fwknop-client git gnutar grep gsed jq man moreutils \
+       openssh parallel perl5 wget"
+
+if [[ "$(hostname)" =~ mack2 ]]; then
+    # shellcheck pulls in a /lot/ of depends
+    ports="$ports xmlstarlet shellcheck"
+fi
+
+sudo $port install $ports
 
 ## don't install unless really necessary, since it pulls
 ## in a LOT of stuff and takes forever.
 #sudo $port install wireshark
 
-# needed by disktest.sh, generally a better sed, since
-# it has the -r flag (extended regex's)
-sudo $port install gsed
-
-# because the built-in versions are insecure:
-sudo $port install openssl curl
-
 # https://github.com/koalaman/shellcheck
 #### too many dependencies and I don't use this much
-#sudo $port install shellcheck
-
-# for certain types of scripting
-#### too many dependencies and I only use it on one machine at home, so
-#### make this a manual install
-#sudo $port install xmlstarlet
+#sudo $port install 
 ###############################################################################
 
 # This should be the default on Mac OS X.  It prevents all processes
