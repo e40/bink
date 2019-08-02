@@ -95,7 +95,9 @@ PROMPT_COMMAND=__my_prompt_prompt_command
 function __do_acl_build_env_setup {
     # This gives an easy way to short circuit the source'ing of env.sh
     [ "${ENV_SH_DEBUG-}" ] && return 0
-    [ -f makefile.m -a -f env.sh -a -f ../makefile.top ] && source env.sh
+    if [ -f makefile.m -a -f env.sh -a -f ../makefile.top ]; then
+	source env.sh
+    fi
 }
 
 # usage: __my_localize_path path
