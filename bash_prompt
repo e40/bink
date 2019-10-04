@@ -98,6 +98,7 @@ function __do_acl_build_env_setup {
     if [ -f makefile.m -a -f env.sh -a -f ../makefile.top ]; then
 	source env.sh
     fi
+    return 0
 }
 
 # usage: __my_localize_path path
@@ -120,6 +121,7 @@ function __my_localize_path {
     # Do some transformations, so locatization can happen.
     # The first is layer-specific and the 2nd is company wide.
     # Remember that ~/l/.. symlinks can turn into /fi/.. paths.
+
     if [[ "$dir" =~ ^$HOME/l/ ]]; then
 	if [[ $dir =~ ^(.*)/$ ]]; then
 	    dir="${BASH_REMATCH[1]}"
