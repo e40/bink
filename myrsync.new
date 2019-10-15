@@ -1,0 +1,151 @@
+#! /usr/bin/env bash
+
+set -eu
+set -o pipefail
+
+prog="$(basename "$0")"
+
+function usage {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    cat 1>&2 <<EOF
+Usage: $prog [--max-delete N] [--no-max-delete] [--debug]
+             [rsync(1) args] ...
+
+Just like rsync(1), but it has these additional arguments:
+
+--max-delete N
+  if --delete or --delete-before is given, then do not delete more than
+  N files.  The default is 250.
+
+--no-max-delete
+  Put no limit on the number of files which can be deleted in one
+  invocation of rsync.
+
+--debug
+  Do not execute any commands, but print them.
+
+Also, there are some macOS hacks included in here that allow the copying
+of sparse bundles.  Not certain I got that part right.
+
+All other arguments to this script must be valid arguments to rsync,
+since any unknown arguments are passed directly to it.
+EOF
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    exit 1
+}
+
+debug=
+exclude=
+maxdelete=250
+verbose=-q
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --debug) debug=$1 ;;
+	--exclude)
+	    exclude="$1 $2"
+	    shift
+	    ;;
+	--max-delete)
+	    maxdelete=$2
+	    shift
+	    ;;
+	--no-max-delete) maxdelete= ;;
+	-q) verbose=-q ;;
+	-v) verbose=-v ;;
+	-*) break ;;
+    esac
+    shift
+done
+
+function d {
+    if [ "$debug" ]; then
+	echo "would: $*"
+    else
+	echo "+ $*"
+        "$@"
+    fi
+}
+
+function find_rsync {
+    local rsync=
+    if [ -x /opt/local/bin/rsync ]; then
+	# Mac OS X, use the macports version
+	rsync=/opt/local/bin/rsync
+    elif [ -x /usr/local/bin/rsync ]; then
+	# Linux, use the locally installed version, which
+	# understand the flags we need to preserve Mac OS X
+	# file attributes.
+	rsync=/usr/local/bin/rsync
+    elif rsync --version | grep -q -F 3.0.9; then
+	rsync=rsync
+    elif rsync --version | grep -q -F 3.1.2; then
+	rsync=rsync
+    fi
+    if [ "${rsync}" ]; then
+	echo $rsync
+	return
+    else
+	return 1
+    fi
+}
+
+# usage: error_if_mounted_sparse_bundle path
+#   check if 'path' is a mounted sparse bundle
+# Ideas from:
+#   http://www.lbackup.org/synchronizing_disk_images_between_machines
+function mounted_sparse_bundle_p {
+    # First, see if the source is a .sparsebundle and make sure it is not
+    # mounted
+    local source=$(echo "$1" | sed -e 's,/$,,')
+    case "$(basename "$source")" in
+	*.sparsebundle)
+	    if hdiutil info | grep "image-path" | grep "$source" > /dev/null; then
+		errordie Error: cannot rsync while $source is mounted
+	    fi
+	    return 0
+	    ;;
+    esac
+    return 1
+}
+
+# main body is in a list so the script can be changed while in use
+{
+
+if ! rsync=$(find_rsync); then
+    errordie Could not a good version of rsync
+fi
+
+# -E :: preserve the file's executability
+# -x :: don't cross filesystem boundaries
+baseargs="-E -x -a --delete --delete-before --exclude lost+found $verbose"
+baseargs="$baseargs --exclude .fseventsd --exclude .Trashes"
+baseargs="$baseargs --exclude .DocumentRevisions-V100"
+baseargs="$baseargs --exclude .Spotlight-V100 --exclude .TemporaryItems"
+
+# Tweaks needed to copy macOS sparse bundles
+if [ "$(uname)" = "Darwin" ]; then
+    if mounted_sparse_bundle_p "$1"; then
+	# -N             preserve create times
+	# -H             preserve hard links
+	# -A             preserve ACLs (implies --perms)
+	# -X             preserve extended attributes
+	# --fileflags    preserve file-flags (aka chflags)
+	# --force-change affect user-/system-immutable files/dirs
+	baseargs="$baseargs -NHAX --fileflags --force-change"
+    fi
+fi
+
+[ "$exclude" ]   && baseargs="$baseargs $exclude"
+[ "$maxdelete" ] && baseargs="$baseargs --max-delete=${maxdelete}"
+
+sshargs="ssh -T -o Compression=no -x -i $HOME/.ssh/id_rsa_nopw"
+
+d $rsync $baseargs -e "$sshargs" "$@"
+
+exit 0
+}
