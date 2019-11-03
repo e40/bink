@@ -3,6 +3,8 @@
 
 set -eu
 set -o pipefail
+# have case and [[ do case-insensitive matches
+shopt -s nocasematch
 
 prog="$(basename "$0")"
 
