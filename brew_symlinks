@@ -49,6 +49,7 @@ function d {
 {
     src=/usr/local/opt
     dst=/usr/local/bin
+
     cd $src
 
     for d in */bin; do
@@ -76,6 +77,25 @@ function d {
 	    else
 		errordie Cannot find $e in ${src}
 	    fi
+	fi
+    done
+
+    coreutils=/usr/local/Cellar/coreutils
+
+    # Clumsy way to make sure there is only one version of
+    # coreutils installed, since I don't know if it's even possible
+    # to have more than one installed.
+    cd $coreutils
+    if [ $(/bin/ls -1 | wc -l) -ne 1 ]; then
+	errordie there is more than coreutils installed: $(ls -F)
+    fi
+    coreutils=${coreutils}/$(echo *)/libexec/gnubin
+    cd $src
+    
+    for f in ${coreutils}/*; do
+	base=$(basename $f)
+	if [ ! -e ${dst}/$base ]; then
+	    d ln -s "$f" "${dst}/$base"
 	fi
     done
     exit 0
