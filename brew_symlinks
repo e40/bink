@@ -1,0 +1,82 @@
+#! /usr/bin/env bash
+
+extras="tar sed grep"
+
+set -eu
+set -o pipefail
+
+prog="$(basename "$0")"
+
+function usage {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    cat 1>&2 <<EOF
+Usage: $prog [--install]
+
+Show (or make when --install is given) what symbolic links in /usr/local/opt/
+can be made in /usr/local/bin/.
+
+Also, make symlinks for these extra programs:
+  $extras
+EOF
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    exit 1
+}
+
+install=
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --install) install=$1 ;;
+        *)         usage extra args: $* ;;
+    esac
+    shift
+done
+
+function d {
+    if [ ! "$install" ]; then
+	echo "would: $*"
+    else
+	echo "+ $*"
+        "$@"
+    fi
+}
+
+# main body is in a list so the script can be changed while in use
+{
+    src=/usr/local/opt
+    dst=/usr/local/bin
+    cd $src
+
+    for d in */bin; do
+	[[ $d =~ @ ]] && continue
+	for x in $d/*; do
+	    base=$(basename $x)
+	    bin="${dst}/$base"
+	    shadow="$(which $base)" || true
+	    if [ ! -e "$bin" ]; then
+		if [ "$shadow" ]; then
+		    d ln -s "$src/$x" ${dst}/$base
+		else
+		    : # not shadowed, ignore it
+		fi
+	    fi
+	done
+    done
+
+    for e in $extras; do
+	if [ ! -e "${dst}/$e" ]; then
+	    if [ -e ${src}/gnu-$e/bin/g$e ]; then
+		d ln -s ${src}/gnu-$e/bin/g$e ${dst}/$e
+	    elif [ -e ${src}/$e/bin/g$e ]; then
+		d ln -s ${src}/$e/bin/g$e ${dst}/$e
+	    else
+		errordie Cannot find $e in ${src}
+	    fi
+	fi
+    done
+    exit 0
+}

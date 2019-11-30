@@ -1,0 +1,42 @@
+#! /usr/bin/env bash
+# Install extra programs
+
+set -eu
+
+function errordie {
+    echo "Error: $*" 1>&2
+    exit 1
+}
+
+###############################################################################
+# MacPorts/Homebrew installs
+
+## KEEP IN SYNC WITH:
+##   ~/src/config/classes/base-macosx/etc/packages/base-macosx
+
+ports="autossh bash coreutils curl diffutils findutils \
+       git grep jq moreutils openssh wget"
+
+if type -p port > /dev/null; then
+    install="sudo port -N install"
+    ports="$ports fwknop-client gsed gnutar parallel perl5 man"
+
+    if [[ "$(hostname)" =~ mack2 ]]; then
+	# shellcheck pulls in a /lot/ of depends
+	ports="$ports xmlstarlet shellcheck"
+    fi
+elif type -p brew > /dev/null; then
+    if id -Gn $USER | grep -q -w admin; then
+	: # OK to install
+    else
+	errordie Must be admin to use Homebrew
+    fi
+    install="brew install"
+    ports="$ports fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
+fi
+
+$install $ports
+
+## don't install unless really necessary, since it pulls
+## in a LOT of stuff and takes forever.
+#$install wireshark

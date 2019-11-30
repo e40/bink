@@ -280,32 +280,7 @@ d "Chrome: Use the system-native print preview dialog" \
     echo "starting system UI server" &&
     killall -KILL SystemUIServer
 
-###############################################################################
-# MacPorts installs
 
-port="port -N"
-
-## KEEP IN SYNC WITH:
-##   ~/src/config/classes/base-macosx/etc/packages/base-macosx
-
-ports="autossh bash coreutils curl diffutils findutils \
-       fwknop-client git gnutar grep gsed jq man moreutils \
-       openssh parallel perl5 wget"
-
-if [[ "$(hostname)" =~ mack2 ]]; then
-    # shellcheck pulls in a /lot/ of depends
-    ports="$ports xmlstarlet shellcheck"
-fi
-
-sudo $port install $ports
-
-## don't install unless really necessary, since it pulls
-## in a LOT of stuff and takes forever.
-#sudo $port install wireshark
-
-# https://github.com/koalaman/shellcheck
-#### too many dependencies and I don't use this much
-#sudo $port install 
 ###############################################################################
 
 # This should be the default on Mac OS X.  It prevents all processes
