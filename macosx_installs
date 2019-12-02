@@ -35,7 +35,7 @@ elif [ -x /usr/local/bin/brew ]; then
 	errordie "you must be an 'admin' to use Homebrew"
     fi
     if [ $(id -u) -eq 0 ]; then
-	manager="sudo -u admin /usr/local/bin/brew"
+	manager="sudo --login -u admin /usr/local/bin/brew"
     else
 	manager="/usr/local/bin/brew"
     fi
