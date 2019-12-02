@@ -18,6 +18,7 @@ if type -p port > /dev/null; then
     fi
     update="selfupdate"
     upgrade="upgrade outdated"
+    cleanup="uninstall inactive"
 elif type -p brew > /dev/null; then
     macports=
     brew=notnull
@@ -31,6 +32,7 @@ elif type -p brew > /dev/null; then
     packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
     update="update"
     upgrade="upgrade"
+    cleanup="cleanup"
 fi
 
 ###############################################################################
@@ -40,12 +42,15 @@ prog="$(basename "$0")"
 function usage {
     [ "${*-}" ] && echo "$prog: $*" 1>&2
     cat 1>&2 <<EOF
-Usage: $prog [--debug] [--help]
+Usage: $prog [--debug] [--help] [--clean]
 
 Install ports/formulae for MacPorts/Homebrew.  The following
 packages will be installed:
 $(echo $packages | xargs -n 6 echo "  ")
 
+Options:
+--debug   :: show what would be done
+--clean   :: clean up after installation
 EOF
     exit 1
 }
@@ -56,10 +61,12 @@ function errordie {
 }
 
 debug=
+clean=
 
 while [ $# -gt 0 ]; do
     case $1 in
         --help)  usage ;;
+        --clean) clean=$1 ;;
         --debug) debug=$1 ;;
         *)       break ;;
     esac
@@ -82,3 +89,4 @@ d $manager $update
 d $manager $upgrade
 d $manager install $packages
 
+[ "$clean" ] && d $manager $cleanup
