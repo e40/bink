@@ -16,7 +16,7 @@ Stackoverflow gets lots of thanks.
 | install_agent_wrapper.sh | SSH agent wrapper for Dock-started apps |
 | m               | mail result of executing command to an email address |
 | macosx_tweaks   | automate change various macOS settings |
-| macosx_installs | automate change various macOS settings |
+| macosx_installs | automate the installation of a default set of packages |
 | motd.sh         | print/email a message of the day |
 | mount_smb       | BSD/macOS: mount an SMB share over an SSH tunnel |
 | myrsync         | adds `--max-delete` argument to `rsync` |

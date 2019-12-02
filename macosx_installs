@@ -1,42 +1,84 @@
 #! /usr/bin/env bash
-# Install extra programs
 
 set -eu
+set -o pipefail
 
-function errordie {
-    echo "Error: $*" 1>&2
-    exit 1
-}
-
-###############################################################################
-# MacPorts/Homebrew installs
-
-## KEEP IN SYNC WITH:
-##   ~/src/config/classes/base-macosx/etc/packages/base-macosx
-
-ports="autossh bash coreutils curl diffutils findutils \
+# Common to both Homebrew and MacPorts
+packages="autossh bash coreutils curl diffutils findutils \
        git grep jq moreutils openssh wget"
 
 if type -p port > /dev/null; then
-    install="sudo port -N install"
-    ports="$ports fwknop-client gsed gnutar parallel perl5 man"
-
+    macports=notnull
+    brew=
+    manager="sudo port -N"
+    packages="$packages fwknop-client gsed gnutar parallel perl5 man"
     if [[ "$(hostname)" =~ mack2 ]]; then
 	# shellcheck pulls in a /lot/ of depends
-	ports="$ports xmlstarlet shellcheck"
+	packages="$packages xmlstarlet shellcheck"
     fi
+    update="selfupdate"
+    upgrade="upgrade outdated"
 elif type -p brew > /dev/null; then
+    macports=
+    brew=notnull
     if id -Gn $USER | grep -q -w admin; then
 	: # OK to install
     else
-	errordie Must be admin to use Homebrew
+	errordie "you must be an 'admin' to use Homebrew"
     fi
-    install="brew install"
-    ports="$ports fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
+    manager="brew"
+    # 'xmlstarlet' and 'shellcheck' are quick to install in Homebrew
+    packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
+    update="update"
+    upgrade="upgrade"
 fi
 
-$install $ports
+###############################################################################
 
-## don't install unless really necessary, since it pulls
-## in a LOT of stuff and takes forever.
-#$install wireshark
+prog="$(basename "$0")"
+
+function usage {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    cat 1>&2 <<EOF
+Usage: $prog [--debug] [--help]
+
+Install ports/formulae for MacPorts/Homebrew.  The following
+packages will be installed:
+$(echo $packages | xargs -n 6 echo "  ")
+
+EOF
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    exit 1
+}
+
+debug=
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --help)  usage ;;
+        --debug) debug=$1 ;;
+        *)       break ;;
+    esac
+    shift
+done
+
+function d {
+    if [ "$debug" ]; then
+	echo "would: $*"
+    else
+	echo "+ $*"
+        "$@"
+    fi
+}
+
+# A good time to make sure analytics are turned off
+[ "$brew" ] && d $manager analytics off
+
+d $manager $update
+d $manager $upgrade
+d $manager install $packages
+
