@@ -19,6 +19,8 @@ is sent to stdout.
 
 The default subject of "(SUCCESS|FAILURE): command..." can be
 changed with the -s command line argument.
+
+Send no mail when there is no output.
 EOF
     exit 1
 }
@@ -59,7 +61,9 @@ command="$*"
 
 function process_output {
     local s="${subject-$status: $command}"
-    if [ "$to" ]; then
+    if [ ! -s $tempfile ]; then
+	: # don't do anything
+    elif [ "$to" ]; then
 	Mail -s "$s" $to < $tempfile || true
     else
 	cat $tempfile
