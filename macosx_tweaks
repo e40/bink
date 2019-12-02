@@ -303,7 +303,7 @@ fi
 # Disable captive portal window
 # https://web.archive.org/web/20130407200745/http://www.divertednetworks.net/apple-captiveportal.html
 capnetsupsettings=/Library/Preferences/SystemConfiguration/CaptiveNetworkSupport/Settings.plist
-if grep -q -F apple.com $capnetsupsettings; then
+if [ -f "capnetsupsettings" ] && grep -q -F apple.com $capnetsupsettings; then
     echo Fixing $capnetsupsettings...
     sudo gsed -i.orig 's/\.apple\.com/\.localhost/g' $capnetsupsettings
 fi
