@@ -3,14 +3,21 @@
 set -eu
 set -o pipefail
 
+prog="$(basename "$0")"
+
+function errordie {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    exit 1
+}
+
 # Common to both Homebrew and MacPorts
 packages="autossh bash coreutils curl diffutils findutils \
        git grep jq moreutils openssh wget"
 
-if type -p port > /dev/null; then
+if [ -x /opt/local/bin/port ]; then
     macports=notnull
     brew=
-    manager="sudo port -N"
+    manager="sudo /opt/local/bin/port -N"
     packages="$packages fwknop-client gsed gnutar parallel perl5 man"
     if [[ "$(hostname)" =~ mack2 ]]; then
 	# shellcheck pulls in a /lot/ of depends
@@ -19,7 +26,7 @@ if type -p port > /dev/null; then
     update="selfupdate"
     upgrade="upgrade outdated"
     cleanup="uninstall inactive"
-elif type -p brew > /dev/null; then
+elif [ -x /usr/local/bin/brew ]; then
     macports=
     brew=notnull
     if id -Gn $USER | grep -q -w admin; then
@@ -27,17 +34,17 @@ elif type -p brew > /dev/null; then
     else
 	errordie "you must be an 'admin' to use Homebrew"
     fi
-    manager="brew"
+    manager="/usr/local/bin/brew"
     # 'xmlstarlet' and 'shellcheck' are quick to install in Homebrew
     packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
     update="update"
     upgrade="upgrade"
     cleanup="cleanup"
+else
+    errordie cannot find MacPorts or Homebrew package manager.
 fi
 
 ###############################################################################
-
-prog="$(basename "$0")"
 
 function usage {
     [ "${*-}" ] && echo "$prog: $*" 1>&2
@@ -52,11 +59,6 @@ Options:
 --debug   :: show what would be done
 --clean   :: clean up after installation
 EOF
-    exit 1
-}
-
-function errordie {
-    [ "${*-}" ] && echo "$prog: $*" 1>&2
     exit 1
 }
 
