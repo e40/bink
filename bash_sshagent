@@ -108,6 +108,16 @@ function __my_ssh_have_one_identity_p {
     fi
 }
 # If my default identity is not already added to the agent, then add it.
+# 
+# The arrays __my_ssh_default_identity and __my_ssh_default_identity_md5
+# contain a matched list of SSH identities and MD5 fingerprints.  They
+# are used to ensure that the SSH keys are added to the running agent.
+# The marker "done", in __my_ssh_default_identity, when a corresponding
+# match is made in __my_ssh_default_identity_md5, causes the loop through
+# the arrays to terminate.  This is useful when using FastX via a tunnel,
+# using a forwarded agent key, the file of which is not accessible locally
+# (but the key is in ~/.ssh/authorized_keys).
+#
 function __my_ssh_ensure_default_identities {
     local ids=(${__my_ssh_default_identity})
     local fps=(${__my_ssh_default_identity_md5})
@@ -116,6 +126,9 @@ function __my_ssh_ensure_default_identities {
     [ "${MY_DEBUG_SSHAGENT-}" ] && ssh-add -E md5 -l 1>&2
     while [ $i -lt $n ]; do
 	if ! ssh-add -E md5 -l 2>/dev/null | grep -q ${fps[$i]}; then
+	    if [ "${ids[$i]}" = "done" ]; then
+		return 1
+	    fi
 	    echo NOTE: adding identity ${ids[$i]} 1>&2
 	    ssh-add ${ids[$i]} || echo COULD NOT ADD IDENTITY 1>&2
 	fi
