@@ -72,10 +72,10 @@ function errordie {
 }
 
 if [ "$(uname -s)" = "Darwin" ]; then
-    if [ -x /opt/local/bin/gstat ]; then
-	stat=/opt/local/bin/gstat
+    if stat=$(type -p gstat); then
+	: # found it
     else
-	errordie "need an updated 'stat': install macports coreutils"
+	errordie "cannot find 'gstat': install brew/macports coreutils"
     fi
 elif [ -x /usr/bin/stat ]; then
     stat=/usr/bin/stat

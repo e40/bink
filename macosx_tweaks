@@ -292,9 +292,9 @@ EOF
 fi
 
 shell="$(dscl . -read /Users/$USER UserShell)"
-if [ "$shell" != "UserShell: /opt/local/bin/bash" ]; then
+if [ ! "$shell" =~ "UserShell: /(usr|opt)/local/bin/bash" ]; then
     cat <<EOF 
-SHELL=$SHELL and not /opt/local/bin/bash.
+SHELL=$SHELL is not /usr/local/bin/bash or /opt/local/bin/bash.
 Change it in System Preferences, Users & Groups, right-click on user and
 select "Advanced Options..."
 EOF

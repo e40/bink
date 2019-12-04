@@ -1,4 +1,4 @@
-#! /opt/local/bin/python2.7
+#! /usr/bin/env python2.7
 # Example taken from:
 #   https://github.com/jaredks/rumps
 #

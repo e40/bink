@@ -41,6 +41,7 @@ elif [ -x /usr/local/bin/brew ]; then
     fi
     # 'xmlstarlet' and 'shellcheck' are quick to install in Homebrew
     packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
+    packages="python python@2"
     update="update"
     upgrade="upgrade"
     cleanup="cleanup"

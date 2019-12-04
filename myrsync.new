@@ -77,7 +77,7 @@ function find_rsync {
 	# Mac OS X, use the macports version
 	rsync=/opt/local/bin/rsync
     elif [ -x /usr/local/bin/rsync ]; then
-	# Linux, use the locally installed version, which
+	# HomeBrew or Linux, use the locally installed version, which
 	# understand the flags we need to preserve Mac OS X
 	# file attributes.
 	rsync=/usr/local/bin/rsync

@@ -65,6 +65,8 @@ autossh="$(command_exists_p autossh)"
 ssh="$(command_exists_p ssh)"
 removepidfile="$(command_exists_p removepidfile)"
 
+bindir=$(dirname "$autossh")"
+
 function usage {
     cat 1>&2 <<EOF
 Usage: mount_smb [--verbose] [--debug]
@@ -92,11 +94,11 @@ device to the remote machine.
 should be added with the "visudo" command as root:
    Defaults        env_keep += "AUTOSSH_PIDFILE"
    $USER ALL=(ALL) NOPASSWD: /sbin/ifconfig lo0 *
-   $USER ALL=(ALL) NOPASSWD: /opt/local/bin/autossh
-   $USER ALL=(ALL) NOPASSWD: /opt/local/bin/ssh
+   $USER ALL=(ALL) NOPASSWD: $bindir/autossh
+   $USER ALL=(ALL) NOPASSWD: $bindir/ssh
    $USER ALL=(ALL) NOPASSWD: $removepidfile ${pidfileprefix}*
 
-The above assumes that /opt/local/bin/ssh is used in preference to
+The above assumes that $bindir/ssh is used in preference to
 /usr/bin/ssh.  If that is not the case, then update which binary is allowed
 by sudo.
 

@@ -83,6 +83,24 @@ function d {
 
 sparse=
 
+if [ -x /opt/local/bin/rsync ]; then
+    # Mac OS X, use the macports version
+    rsync=/opt/local/bin/rsync
+elif [ -x /usr/local/bin/rsync ]; then
+    # Homebrew or Linux, use the locally installed version, which
+    # understand the flags we need to preserve Mac OS X
+    # file attributes.
+    rsync=/usr/local/bin/rsync
+elif rsync --version | grep -q -F 3.0.9; then
+    rsync=rsync
+elif rsync --version | grep -q -F 3.1.2; then
+    rsync=rsync
+else
+    errordie Could not find the correct version of rsync
+fi
+
+
+
 # Tweaks needed to copy sparse bundles on Mac OS.
 if [ "$(uname)" = "Darwin" ]; then
 
@@ -115,23 +133,7 @@ if [ "$(uname)" = "Darwin" ]; then
     # --fileflags     preserve file-flags (aka chflags)
     # --force-change  affect user-/system-immutable files/dirs
     [ "$sparse" ] &&
-    baseargs="$baseargs -NHAXEx --fileflags --force-change --rsync-path=/opt/local/bin/rsync"
-fi
-
-if [ -x /opt/local/bin/rsync ]; then
-    # Mac OS X, use the macports version
-    rsync=/opt/local/bin/rsync
-elif [ -x /usr/local/bin/rsync ]; then
-    # Linux, use the locally installed version, which
-    # understand the flags we need to preserve Mac OS X
-    # file attributes.
-    rsync=/usr/local/bin/rsync
-elif rsync --version | grep -q -F 3.0.9; then
-    rsync=rsync
-elif rsync --version | grep -q -F 3.1.2; then
-    rsync=rsync
-else
-    errordie Could not find the correct version of rsync
+    baseargs="$baseargs -NHAXEx --fileflags --force-change --rsync-path=$rsync"
 fi
 
 date
