@@ -140,17 +140,19 @@ function __my_ssh_auth_sock_valid_p {
 	return 1
     fi
 
-    n=${#__my_bad_agent_identities[@]-}
-    if [ $n -gt 0 ]; then
-	while [ $n -gt 0 ]; do
-	    n=$(( n - 1 ))
-	    md5="${__my_bad_agent_identities[$n]}"
-	    if ssh-add -E md5 -l 2>/dev/null | grep -q $md5; then
-		_debug sshagent found bad identity, ignore current agent
-		return 1
-	    fi
-	done
-    fi
+    declare -p __my_bad_agent_identities 2>/dev/null | \
+	grep -q '^declare \-a' &&
+	n=${#__my_bad_agent_identities[@]-} &&
+	[ $n -gt 0 ] && {
+	    while [ $n -gt 0 ]; do
+		n=$(( n - 1 ))
+		md5="${__my_bad_agent_identities[$n]}"
+		if ssh-add -E md5 -l 2>/dev/null | grep -q $md5; then
+		    _debug sshagent found bad identity, ignore current agent
+		    return 1
+		fi
+	    done
+	}
 
     # If the file does not exist and is not a socket, then we're done.
     [ ! -S "${SSH_AUTH_SOCK-}" ] && 
