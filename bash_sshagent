@@ -107,30 +107,21 @@ function __my_ssh_have_one_identity_p {
 	return 1
     fi
 }
-# If my default identity is not already added to the agent, then add it.
-# 
-# The arrays __my_ssh_default_identity and __my_ssh_default_identity_md5
-# contain a matched list of SSH identities and MD5 fingerprints.  They
-# are used to ensure that the SSH keys are added to the running agent.
-# The marker "done", in __my_ssh_default_identity, when a corresponding
-# match is made in __my_ssh_default_identity_md5, causes the loop through
-# the arrays to terminate.  This is useful when using FastX via a tunnel,
-# using a forwarded agent key, the file of which is not accessible locally
-# (but the key is in ~/.ssh/authorized_keys).
-#
+
+# Ensure default identities are added to the running agent.
 function __my_ssh_ensure_default_identities {
-    local ids=(${__my_ssh_default_identity})
-    local fps=(${__my_ssh_default_identity_md5})
-    local n=${#ids[@]}
-    local i=0
+    local n=${#__my_ssh_default_identity[@]} i=0 file md5
+    _debug sshagent DEBUG: n=$n
     [ "${MY_DEBUG_SSHAGENT-}" ] && ssh-add -E md5 -l 1>&2
     while [ $i -lt $n ]; do
-	if ! ssh-add -E md5 -l 2>/dev/null | grep -q ${fps[$i]}; then
-	    if [ "${ids[$i]}" = "done" ]; then
-		return 1
-	    fi
-	    echo NOTE: adding identity ${ids[$i]} 1>&2
-	    ssh-add ${ids[$i]} || echo COULD NOT ADD IDENTITY 1>&2
+	file="${__my_ssh_default_identity[$i]}"
+	md5="${__my_ssh_default_identity_md5[$i]}"
+	_debug sshagent looking for $file $md5
+	if ssh-add -E md5 -l 2>/dev/null | grep -q $md5; then
+	    _debug sshagent found $md5
+	else
+	    echo NOTE: adding identity $file1>&2
+	    ssh-add $file || echo COULD NOT ADD IDENTITY 1>&2
 	fi
 	i=$(( i + 1 ))
     done
@@ -140,12 +131,25 @@ function __my_ssh_ensure_default_identities {
 # is alive.  "ssh-add -l" will return 0 on success, 1 on failure
 # (no identities) and 2 if the ssh-add is unable to contact the agent.
 function __my_ssh_auth_sock_valid_p {
+    local n md5
 
     # See note above about macOS countermeasures
     if [[ $SSH_AUTH_SOCK =~ com\.apple\.launchd ]]; then
 	SSH_AUTH_SOCK=
 	echo NOTE: IGNORE launchd SSH_AUTH_SOCK 1>&2
 	return 1
+    fi
+
+    n=${#__my_bad_agent_identities[@]-}
+    if [ $n -gt 0 ]; then
+	while [ $n -gt 0 ]; do
+	    n=$(( n - 1 ))
+	    md5="${__my_bad_agent_identities[$n]}"
+	    if ssh-add -E md5 -l 2>/dev/null | grep -q $md5; then
+		_debug sshagent found bad identity, ignore current agent
+		return 1
+	    fi
+	done
     fi
 
     # If the file does not exist and is not a socket, then we're done.
