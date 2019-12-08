@@ -142,7 +142,7 @@ function __my_ssh_auth_sock_valid_p {
 
     declare -p __my_bad_agent_identities 2>/dev/null | \
 	grep -q '^declare \-a' &&
-	n=${#__my_bad_agent_identities[@]-} &&
+	n=${#__my_bad_agent_identities[@]} &&
 	[ $n -gt 0 ] && {
 	    while [ $n -gt 0 ]; do
 		n=$(( n - 1 ))
