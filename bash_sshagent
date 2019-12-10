@@ -131,7 +131,7 @@ function __my_ssh_ensure_default_identities {
 # is alive.  "ssh-add -l" will return 0 on success, 1 on failure
 # (no identities) and 2 if the ssh-add is unable to contact the agent.
 function __my_ssh_auth_sock_valid_p {
-    local n md5
+    local n bad
 
     # See note above about macOS countermeasures
     if [[ $SSH_AUTH_SOCK =~ com\.apple\.launchd ]]; then
@@ -146,8 +146,8 @@ function __my_ssh_auth_sock_valid_p {
 	[ $n -gt 0 ] && {
 	    while [ $n -gt 0 ]; do
 		n=$(( n - 1 ))
-		md5="${__my_bad_agent_identities[$n]}"
-		if ssh-add -E md5 -l 2>/dev/null | grep -q $md5; then
+		bad="${__my_bad_agent_identities[$n]}"
+		if ssh-add -E md5 -l 2>/dev/null | grep -q "$bad"; then
 		    _debug sshagent found bad identity, ignore current agent
 		    return 1
 		fi
