@@ -14,12 +14,14 @@ function errordie {
 packages="autossh bash coreutils curl diffutils findutils \
        git grep jq moreutils openssh wget"
 
+hostname=$(hostname)
+
 if [ -x /opt/local/bin/port ]; then
     macports=notnull
     brew=
     manager="sudo /opt/local/bin/port -N"
     packages="$packages fwknop-client gsed gnutar parallel perl5 man"
-    if [[ "$(hostname)" =~ mack2 ]]; then
+    if [[ $hostname =~ mack2 ]]; then
 	# shellcheck pulls in a /lot/ of depends
 	packages="$packages xmlstarlet shellcheck"
     fi
@@ -41,7 +43,10 @@ elif [ -x /usr/local/bin/brew ]; then
     fi
     # 'xmlstarlet' and 'shellcheck' are quick to install in Homebrew
     packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
-    packages="python python@2 rsync"
+    packages="$packages python python@2 rsync"
+    if [[ $hostname =~ mack2 ]]; then
+	packages="$packages exiftool"
+    fi
     update="update"
     upgrade="upgrade"
     cleanup="cleanup"
