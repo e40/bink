@@ -34,7 +34,7 @@ elif [ -x /usr/local/bin/brew ]; then
     if id -Gn $USER | grep -q -w admin; then
 	manager="/usr/local/bin/brew"
     else
-	manager="sudo --login -u admin /usr/local/bin/brew"
+	manager="ssh admin@$(hostname -s) /usr/local/bin/brew"
     fi
     # 'xmlstarlet' and 'shellcheck' are quick to install in Homebrew
     packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
