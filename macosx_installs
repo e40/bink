@@ -43,7 +43,7 @@ elif [ -x /usr/local/bin/brew ]; then
     fi
     # 'xmlstarlet' and 'shellcheck' are quick to install in Homebrew
     packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
-    packages="$packages python python@2 rsync"
+    packages="$packages python python@2 rsync lsof"
     if [[ $hostname =~ mack2 ]]; then
 	packages="$packages exiftool"
     fi
