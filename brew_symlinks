@@ -50,6 +50,12 @@ function d {
     src=/usr/local/opt
     dst=/usr/local/bin
 
+    if id -Gn $USER | grep -q -w admin; then
+	ln="ln"
+    else
+	ln="sudo -u admin ln"
+    fi
+
     cd $src
 
     for d in */bin; do
@@ -60,7 +66,7 @@ function d {
 	    shadow="$(which $base)" || true
 	    if [ ! -e "$bin" ]; then
 		if [ "$shadow" ]; then
-		    d ln -s "$src/$x" ${dst}/$base
+		    d $ln -s "$src/$x" ${dst}/$base
 		else
 		    : # not shadowed, ignore it
 		fi
@@ -71,9 +77,9 @@ function d {
     for e in $extras; do
 	if [ ! -e "${dst}/$e" ]; then
 	    if [ -e ${src}/gnu-$e/bin/g$e ]; then
-		d ln -s ${src}/gnu-$e/bin/g$e ${dst}/$e
+		d $ln -s ${src}/gnu-$e/bin/g$e ${dst}/$e
 	    elif [ -e ${src}/$e/bin/g$e ]; then
-		d ln -s ${src}/$e/bin/g$e ${dst}/$e
+		d $ln -s ${src}/$e/bin/g$e ${dst}/$e
 	    else
 		errordie Cannot find $e in ${src}
 	    fi
@@ -95,7 +101,7 @@ function d {
     for f in ${coreutils}/*; do
 	base=$(basename $f)
 	if [ ! -e ${dst}/$base ]; then
-	    d ln -s "$f" "${dst}/$base"
+	    d $ln -s "$f" "${dst}/$base"
 	fi
     done
     exit 0
