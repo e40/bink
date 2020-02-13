@@ -33,6 +33,13 @@ trap '__previous_command=$__this_command; __this_command=$BASH_COMMAND' DEBUG
 __my_prompt_cached_pwd=
 __my_prompt_cached_gitbranch=
 
+# For Solaris
+if id -u &>/dev/null; then
+    __my_prompt_id_works=nonnull
+else
+    __my_prompt_id_works=
+fi
+
 # This is the value of PROMPT_COMMAND, executed before the prompt is printed.
 # We set PS1 here rather than running functions in the prompt because
 # each time you use $(...) in PS1 you get a new subshell.  That makes
@@ -69,7 +76,7 @@ function __my_prompt_prompt_command {
 	if net session > /dev/null 2>&1; then
 	    userchar='#'
 	fi
-    elif [ "$(id -u)" = 0 ]; then
+    elif [ "${__my_prompt_id_works}" ] && [ "$(id -u)" = 0 ]; then
         userchar='#'
     fi
     export PS1="$PS1$userchar "
