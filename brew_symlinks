@@ -100,7 +100,12 @@ function d {
     
     for f in ${coreutils}/*; do
 	base=$(basename $f)
-	if [ ! -e ${dst}/$base ]; then
+	if [ -L ${dst}/$base -a ! -e ${dst}/$base ]; then
+	    # link is bad
+	    d rm -f "${dst}/$base"
+	fi
+
+	if [ ! -L "${dst}/$base" ]; then
 	    d $ln -s "$f" "${dst}/$base"
 	fi
     done
