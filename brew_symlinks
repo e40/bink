@@ -30,6 +30,8 @@ function errordie {
     exit 1
 }
 
+[ "$(uname -s)" = "Darwin" ] || errordie only runs on macOS
+
 install=
 quiet=
 
