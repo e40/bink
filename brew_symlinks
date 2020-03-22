@@ -10,10 +10,14 @@ prog="$(basename "$0")"
 function usage {
     [ "${*-}" ] && echo "$prog: $*" 1>&2
     cat 1>&2 <<EOF
-Usage: $prog [--install]
+Usage: $prog [--exec] [-q]
 
-Show (or make when --install is given) what symbolic links in /usr/local/opt/
-can be made in /usr/local/bin/.
+Print what brew links should be created in /usr/local/bin/.
+
+Command line args:
+
+--exec  :: create the links printed
+-q      :: do not print info about --exec
 
 Also, make symlinks for these extra programs:
   $extras
@@ -27,10 +31,12 @@ function errordie {
 }
 
 install=
+quiet=
 
 while [ $# -gt 0 ]; do
     case $1 in
-        --install) install=$1 ;;
+        --exec)    install=$1 ;;
+	-q)        quiet=$1 ;;
         *)         usage extra args: $* ;;
     esac
     shift
@@ -38,7 +44,7 @@ done
 
 function d {
     if [ ! "$install" ]; then
-	echo "would: $*"
+	echo "$*"
     else
 	echo "+ $*"
         "$@"
@@ -109,5 +115,10 @@ function d {
 	    d $ln -s "$f" "${dst}/$base"
 	fi
     done
+
+    if [ ! "$install" ] && [ ! "$quiet" ]; then
+	echo ""
+	echo "To execute the above commands do: $prog --exec"
+    fi
     exit 0
 }
