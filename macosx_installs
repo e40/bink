@@ -39,7 +39,7 @@ elif [ -x /usr/local/bin/brew ]; then
     # 'xmlstarlet' and 'shellcheck' are quick to install in Homebrew
     packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
     # procmail is for lockfile
-    packages="$packages python python@2 rsync lsof p7zip procmail"
+    packages="$packages python python@2 rsync lsof p7zip procmail ncdu telnet"
     if [[ $hostname =~ mack2 ]]; then
 	packages="$packages exiftool"
     fi
