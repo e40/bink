@@ -56,9 +56,13 @@ function d {
 
 # main body is in a list so the script can be changed while in use
 {
-    tempfile=/tmp/temp$$
-    rm -f $tempfile
-    trap "/bin/rm -f $tempfile" EXIT
+    lockfile="/tmp/${prog}.lock"
+    tempfile="/tmp/${prog}temp$$"
+    rm -f $tempfile 
+    trap "/bin/rm -f $tempfile $lockfile" EXIT
+
+    # ensure that only one copy of this script is running at any given time
+    lockfile -r 0 $lockfile || errordie $prog is already running
 
     find ... > $tempfile
     while read line; do
