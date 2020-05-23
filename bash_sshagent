@@ -62,41 +62,11 @@ fi
     [ "${USER}" != "${__my_ssh_agent_user}" ] &&
     return
 
-#################### sanity checks
-
 if ! type -p __my_ssh_run_agent_p > /dev/null; then
     # Silently return, as this machine likely is running a BASH
     # before version 4.
     return
 fi
-if [ ! "${__my_ssh_default_identity-}" ]; then
-    echo ABORT: __my_ssh_default_identity is not defined 1>&2
-    return
-fi
-if [ ! "${__my_ssh_default_identity_md5-}" ]; then
-    echo ABORT: __my_ssh_default_identity_md5 is not defined 1>&2
-    return
-fi
-# Make sure these two variables have the same number of space-separated
-# values.
-if [ ${#__my_ssh_default_identity[@]} != ${#__my_ssh_default_identity_md5[@]} ]
-then
-    cat <<EOF
-ABORT: __my_ssh_default_identity and __my_ssh_default_identity_md5
-       have a different number of elements.  Fix this to enable
-       agent handling.
-EOF
-    return
-fi
-
-if [ ! -d $HOME/tmp ]; then
-    mkdir $HOME/tmp
-    # By default it should be secure against snooping, since we put
-    # agent info there.
-    chmod 700 $HOME/tmp
-fi
-
-#################### ...sanity checks
 
 # Info saved about an agent we start here goes into this file:
 __my_agent_info="$HOME/tmp/agent.info"
@@ -212,6 +182,39 @@ function __my_ssh_agent_prompt_string {
 __my_ssh_run_agent_p || return
 ###############################################################################
 
+# Now that we're actually going to use an agent, do some sanity checks
+
+if [ ! "${__my_ssh_default_identity-}" ]; then
+    echo ABORT: __my_ssh_default_identity is not defined 1>&2
+    return
+fi
+if [ ! "${__my_ssh_default_identity_md5-}" ]; then
+    echo ABORT: __my_ssh_default_identity_md5 is not defined 1>&2
+    return
+fi
+# Make sure these two variables have the same number of space-separated
+# values.
+if [ ${#__my_ssh_default_identity[@]} != ${#__my_ssh_default_identity_md5[@]} ]
+then
+    cat <<EOF
+ABORT: __my_ssh_default_identity and __my_ssh_default_identity_md5
+       have a different number of elements.  Fix this to enable
+       agent handling.
+EOF
+    return
+fi
+
+if [ ! -d $HOME/tmp ]; then
+    mkdir $HOME/tmp
+    # By default it should be secure against snooping, since we put
+    # agent info there.
+    chmod 700 $HOME/tmp
+fi
+
+# ...end sanity checks
+
+###############################################################################
+
 # Either connect to an exiting SSH agent or start a new one.
 function __my_ssh_initialize_agent {
     if [ -f "${__my_agent_info}" ]; then
@@ -230,8 +233,6 @@ function __my_ssh_initialize_agent {
 	echo NOTE: start new SSH agent: PID=$SSH_AGENT_PID 1>&2
     chmod 600 ${__my_agent_info}
 }
-
-###############################################################################
 
 __my_connected_to_ssh_agent_p || __my_ssh_initialize_agent
 
