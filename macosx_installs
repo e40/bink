@@ -40,6 +40,7 @@ elif [ -x /usr/local/bin/brew ]; then
     packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
     # procmail is for lockfile
     packages="$packages python python@2 rsync lsof p7zip procmail ncdu telnet"
+    packages="$packages rclone"
     if [[ $hostname =~ mack2 ]]; then
 	packages="$packages exiftool"
     fi
