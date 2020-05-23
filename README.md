@@ -12,6 +12,8 @@ Stackoverflow gets lots of thanks.
 | bash_sshagent   | [automatic SSH agent handling for BASH](bash_sshagent.md) |
 | brew_symlinks   | install symlinks to shadow macOS commands of same name |
 | diffdirs        | diff two directories, but not their contents |
+| git.sh          | run git commands in directories specified by config |
+| gitstatus       | wrapper for git.sh using status |
 | knock           | knock but no more than needed |
 | install_agent_wrapper.sh | SSH agent wrapper for Dock-started apps |
 | m               | mail result of executing command to an email address |
@@ -20,6 +22,7 @@ Stackoverflow gets lots of thanks.
 | motd.sh         | print/email a message of the day |
 | mount_smb       | BSD/macOS: mount an SMB share over an SSH tunnel |
 | myrsync         | adds `--max-delete` argument to `rsync` |
+| onall           | run command on machines defined by ONALL_HOSTS |
 | pmv             | access/modify time preserving version of `mv` |
 | pmv_test.sh     | test suite for `pmv` |
 | reload_crontab  | reload `$HOME/.crontab.$host` if different |

@@ -7,6 +7,10 @@
 #       that command exits, the SSH_AUTH_SOCK value is no longer valid.
 #       It does no good to save this value and use it later.
 
+# NOTE: `scp` does not forward the agent, so commands like
+#           scp remote:file local-file
+#       could cause problems if there is no agent running on 'remote'
+
 ########################## macOS countermeasures ###############################
 # Starting in Mojave (?), there's an ssh-agent process that is started as
 # soon as any processes of note are launched, like Terminal.  It seems

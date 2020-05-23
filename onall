@@ -1,0 +1,60 @@
+#! /usr/bin/env bash
+
+usage="[--cd directory] command args...
+
+"
+
+set -eu
+set -o pipefail
+
+self="${BASH_SOURCE[0]}"
+SCRIPTDIR=$(cd "$(dirname "$self")" && pwd)
+argv0="$(basename "$self")"
+
+function usage {
+    [ "${*-}" ] && echo "$argv0: Error: $*" 1>&2
+    echo "Usage: $argv0: $usage" 1>&2
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$argv0: Error: $*" 1>&2
+    exit 1
+}
+
+[ "${ONALL_HOSTS-}" ] || errordie ONALL_HOSTS: env var undefined
+
+cd=
+user=layer
+
+while [ $# -gt 0 ]; do
+    case $1 in
+	--user)
+	    [ $# -lt 2 ] && usage missing companion arg to --user
+	    shift
+	    user="$1"
+	    ;;
+        -d|--cd)
+	    [ $# -lt 2 ] && usage missing companion arg to --cd
+            shift
+            cd="cd $1;"
+            ;;
+        -*) usage ;;
+        *)  break ;;
+    esac
+    shift
+done
+
+# from http://stackoverflow.com/questions/6592376/prevent-ssh-from-breaking-up-shell-script-parameters
+QUOTE_ARGS=''
+for ARG in "$@"; do
+    ARG=$(printf "%q" "$ARG")
+    QUOTE_ARGS="${QUOTE_ARGS} $ARG"
+done
+
+for h in ${ONALL_HOSTS}; do
+    echo ""
+    echo ============= $h ====================================================
+    echo ""
+    ssh ${user}@$h "$cd${QUOTE_ARGS}"
+done

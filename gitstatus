@@ -1,0 +1,55 @@
+#! /usr/bin/env bash
+
+set -eu
+set -o pipefail
+
+prog="$(basename "$0")"
+
+function usage {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    cat 1>&2 <<EOF
+Usage: $prog [options]
+
+Examples:
+ \$ $prog -a
+
+Options for git.sh:
+
+$(git.sh --help)
+EOF
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    exit 1
+}
+
+debug=
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --help)  usage ;;
+        --debug) debug=$1 ;;
+        *)       break ;;
+    esac
+    shift
+done
+
+function d {
+    if [ "$debug" ]; then
+	echo "would: $*"
+    else
+	echo "+ $*"
+        "$@"
+    fi
+}
+
+{
+    d git.sh --check -q "$@" status --porcelain
+
+    # fails if origin doesn't exist, need to find a way to avoid that
+    d git.sh -e -q "$@" log --oneline HEAD ^origin/BRANCH
+
+    exit 0
+}
