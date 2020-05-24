@@ -25,7 +25,7 @@ function errordie {
 [ "${ONALL_HOSTS-}" ] || errordie ONALL_HOSTS: env var undefined
 
 cd=
-user=layer
+user=${USER}
 
 while [ $# -gt 0 ]; do
     case $1 in
