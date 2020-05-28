@@ -145,7 +145,7 @@ function __my_localize_path {
     fi
 
     if [[ "$dir" =~ ^/fi/ ]]; then
-	temp="$(builtin cd "$dir"; nfspwd)"
+	temp="$(builtin cd "$dir"; pwd -P)"
 	if [[ $temp =~ ^([a-zA-z0-9]+):(/.*) ]]; then
 	    # autofs 'nobind' screws us again!
 	    dir="/net/${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
