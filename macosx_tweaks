@@ -311,6 +311,13 @@ fi
 # Restart automatically if the computer freezes
 sudo systemsetup -setrestartfreeze on
 
+sudo softwareupdate --ignore "macOS Catalina"
+defaults delete com.apple.preferences.softwareupdate \
+	 LatestMajorOSSeenByUserBundleIdentifier
+# Now this will not list it (for now):
+#softwareupdate --list
+# Thanks to: https://lapcatsoftware.com/articles/software-update.html
+
 # Never go into computer sleep mode
 [ "$USER" = "layer" ] &&
     sudo systemsetup -setcomputersleep Off > /dev/null
