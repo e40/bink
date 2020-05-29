@@ -308,9 +308,6 @@ if [ -f "capnetsupsettings" ] && grep -q -F apple.com $capnetsupsettings; then
     sudo gsed -i.orig 's/\.apple\.com/\.localhost/g' $capnetsupsettings
 fi
 
-# Last, remove bogus CAs
-#./macosx_rm_cas.sh
-
 # Restart automatically if the computer freezes
 sudo systemsetup -setrestartfreeze on
 
