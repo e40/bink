@@ -58,7 +58,7 @@ function d {
 
     if ! cmp -s $tempfile $crontab; then
 	diff $tempfile $crontab || true
-	read -p "Do you want to install this crontab? " -n 1 -r
+	read -p "${crontab}: install updated version? " -n 1 -r
 	if [[ $REPLY =~ ^[Yy]$ ]]; then
 	    d crontab $crontab
 	fi
