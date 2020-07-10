@@ -166,15 +166,23 @@ function __my_localize_path {
 function cd {
     local dir
     local args
+
     if [ $# -eq 0 ]; then
 	# accessing $HOME via NFS sucks!
 	dir="$HOME"
 	args=
     else
+	# separate the directory from the options
 	local n=$(( ${#@} - 1 ))
 	args="${@:1:$n}"
 	dir="${@: -1}"
+	if [[ $dir =~ ^/scp:[^:]+:(.*) ]]; then
+	    # strip off the prefix, which is solely
+	    # for Emacs to track the directory properly.
+	    dir="${BASH_REMATCH[1]}"
+	fi
     fi
+
     if dir="$(__my_localize_path "$dir")"; then
 	builtin cd $args "$dir" && __do_acl_build_env_setup
     fi
@@ -189,6 +197,11 @@ function pushd {
 	local n=$(( ${#@} - 1 ))
 	local args="${@:1:$n}"
 	local dir="${@: -1}"
+	if [[ $dir =~ ^/scp:[^:]+:(.*) ]]; then
+	    # strip off the prefix, which is solely
+	    # for Emacs to track the directory properly.
+	    dir="${BASH_REMATCH[1]}"
+	fi
 	if dir="$(__my_localize_path "$dir")"; then
 	    builtin pushd $args "$dir" && __do_acl_build_env_setup
 	fi
