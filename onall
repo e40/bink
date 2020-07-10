@@ -1,7 +1,13 @@
 #! /usr/bin/env bash
+# examples:
+# $ ./onall.sh -d bink -e '(layerpro|gremlin|git)' git pull -r
 
-usage="[--cd directory] command args...
+usage="[-i] [-e regex] [-d directory] [-u user] command args...
 
+-i :: ignore errors
+-e :: except machines by regex argument
+-d :: cd to 'directory' first
+-u :: execute as 'user'
 "
 
 set -eu
@@ -25,25 +31,43 @@ function errordie {
 [ "${ONALL_HOSTS-}" ] || errordie ONALL_HOSTS: env var undefined
 
 cd=
+ignoreerrors=
+except=
 user=${USER}
 
 while [ $# -gt 0 ]; do
     case $1 in
-	--user)
-	    [ $# -lt 2 ] && usage missing companion arg to --user
-	    shift
-	    user="$1"
-	    ;;
         -d|--cd)
 	    [ $# -lt 2 ] && usage missing companion arg to --cd
             shift
             cd="cd $1;"
             ;;
+	-e) except="$2"; shift ;;
+	-i) ignoreerrors=$1 ;;
+	--user)
+	    [ $# -lt 2 ] && usage missing companion arg to --user
+	    shift
+	    user="$1"
+	    ;;
         -*) usage ;;
         *)  break ;;
     esac
     shift
 done
+
+hosts=${ONALL_HOSTS}
+
+if [ "$except" ]; then
+    tmp=
+    for h in $hosts; do
+	if [[ $h =~ $except ]]; then
+	    echo Note: skip host $h
+	else
+	    tmp="$tmp $h"
+	fi
+    done
+    hosts=$tmp
+fi
 
 # from http://stackoverflow.com/questions/6592376/prevent-ssh-from-breaking-up-shell-script-parameters
 QUOTE_ARGS=''
@@ -52,9 +76,21 @@ for ARG in "$@"; do
     QUOTE_ARGS="${QUOTE_ARGS} $ARG"
 done
 
-for h in ${ONALL_HOSTS}; do
-    echo ""
-    echo ============= $h ====================================================
-    echo ""
-    ssh ${user}@$h "$cd${QUOTE_ARGS}"
-done
+{
+    for h in $hosts; do
+	echo ""
+	echo ============= $h ========================================
+	echo ""
+	var=ONALL_SSH_PORT_$h
+	if [ "${!var-}" ]; then
+	    port="-p ${!var}"
+	else
+	    port=
+	fi
+	if [ "$ignoreerrors" ]; then
+	    ssh $port ${user}@$h "$cd${QUOTE_ARGS}" || true
+	else
+	    ssh $port ${user}@$h "$cd${QUOTE_ARGS}"
+	fi
+    done
+}
