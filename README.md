@@ -12,6 +12,7 @@ Stackoverflow gets lots of thanks.
 | bash_sshagent   | [automatic SSH agent handling for BASH](bash_sshagent.md) |
 | brew_symlinks   | install symlinks to shadow macOS commands of same name |
 | diffdirs        | diff two directories, but not their contents |
+| genuuid         | cheap UUID generation on Linux/macOS |
 | git.sh          | run git commands in directories specified by config |
 | gitstatus       | wrapper for git.sh using status |
 | knock           | knock but no more than needed |

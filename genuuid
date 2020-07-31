@@ -1,0 +1,17 @@
+#! /usr/bin/env bash
+
+set -eu
+
+case "$(uname -s)" in
+    Linux)
+	uuid=/proc/sys/kernel/random/uuid
+	if [ -e $uuid ]; then
+	    cat $uuid
+	else
+	    error $uuid does not exist
+	    exit 1
+	fi
+	;;
+    Darwin) uuidgen ;;
+    *)      echo unknown how to gen a uuid here; exit 1 ;;
+esac
