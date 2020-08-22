@@ -8,6 +8,9 @@ shopt -s nocasematch
 
 prog="$(basename "$0")"
 
+# SCRIPTDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+# source ${SCRIPTDIR}/foo.subs
+
 function usage {
     [ "${*-}" ] && echo "$prog: $*" 1>&2
     cat 1>&2 <<EOF
