@@ -287,12 +287,17 @@ d "Chrome: Use the system-native print preview dialog" \
 # from getting sudo privs.
 if ! sudo grep tty_tickets /etc/sudoers > /dev/null; then
     cat<<EOF
-NOTE: add "Defaults tty_tickets" to /etc/sudoers
+TODO: add "Defaults tty_tickets" to /etc/sudoers
+EOF
+fi
+if ! sudo grep -E '^Defaults.*HOME MAIL' /etc/sudoers; then
+    cat<<EOF
+TODO: comment out the above in /etc/sudoers
 EOF
 fi
 
 shell="$(dscl . -read /Users/$USER UserShell)"
-if [[ ! "$shell" =~ "UserShell: /(usr|opt)/local/bin/bash" ]]; then
+if [[ ! "$shell" =~ UserShell:\ /(usr|opt)/local/bin/bash ]]; then
     cat <<EOF 
 SHELL=$SHELL is not /usr/local/bin/bash or /opt/local/bin/bash.
 Change it in System Preferences, Users & Groups, right-click on user and
@@ -321,6 +326,46 @@ defaults delete com.apple.preferences.softwareupdate \
 # Never go into computer sleep mode
 [ "$USER" = "layer" ] &&
     sudo systemsetup -setcomputersleep Off > /dev/null
+
+# clear the Quicklook thumbnail cache
+qlmanage -r cache
+# disable the Quicklook thumbnail cache
+qlmanage -r disablecache
+### unnecessary due to the above??
+#rm -rfv "$HOME/Library/Application Support/Quick Look/*"
+#chmod -R 000 "$HOME/Library/Application Support/Quick Look"
+#chflags -R uchg "$HOME/Library/Application Support/Quick Look"
+
+# remove and prevent macOS from collecting sensitive info about what I type,
+# even if user dictionary and suggestions are off.
+rm -rfv \
+   "$HOME/Library/LanguageModeling/*" \
+   "$HOME/Library/Spelling/*" \
+   "$HOME/Library/Suggestions/*"
+chmod -R 000 \
+      $HOME/Library/LanguageModeling \
+      $HOME/Library/Spelling \
+      $HOME/Library/Suggestions
+chflags -R uchg \
+	$HOME/Library/LanguageModeling \
+	$HOME/Library/Spelling \
+	$HOME/Library/Suggestions
+
+# Blacklist iTunes.app from running
+# Santa installed from https://github.com/google/santa/releases
+if type -p santactl > /dev/null; then
+    sudo santactl rule --blacklist --path /Applications/iTunes.app/
+fi
+
+# prevent auto-mounting of remote file systems in Finder by directing
+# these extensions to Safari
+if type -p duti > /dev/null; then
+    duti -s com.apple.Safari afp
+    duti -s com.apple.Safari ftp
+    duti -s com.apple.Safari nfs
+    duti -s com.apple.Safari smb
+    duti -s com.apple.TextEdit public.unix-executable
+fi
 
 exit 0
 
