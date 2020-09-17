@@ -87,10 +87,11 @@ done
 	else
 	    port=
 	fi
+	ssh="ssh -A"
 	if [ "$ignoreerrors" ]; then
-	    ssh $port ${user}@$h "$cd${QUOTE_ARGS}" || true
+	    $ssh $port ${user}@$h "$cd${QUOTE_ARGS}" || true
 	else
-	    ssh $port ${user}@$h "$cd${QUOTE_ARGS}"
+	    $ssh $port ${user}@$h "$cd${QUOTE_ARGS}"
 	fi
     done
 }
