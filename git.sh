@@ -10,9 +10,13 @@ function errordie {
     exit 1
 }
 
-file="$HOME/.modules_$HOSTNAME"
-
-[ -f "$file" ] || errordie $file does not exist.
+if [ -f ".modules_$HOSTNAME" ]; then
+     file="$PWD/.modules_$HOSTNAME"
+elif [ -f ".modules" ]; then
+     file="$PWD/.modules"
+else
+    errordie Cannot find a .modules file
+fi
 
 important=()
 other=()
