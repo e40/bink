@@ -139,9 +139,10 @@ declare -a args rargs
 args=()
 
 subcmd=${1-}
-shift
 
 [ "$subcmd" ] || exit 0
+
+shift
 
 i=1
 while test $# -gt 0; do
