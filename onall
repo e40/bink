@@ -81,17 +81,15 @@ done
 	echo ""
 	echo ============= $h ========================================
 	echo ""
-	var=ONALL_SSH_PORT_$h
-	if [ "${!var-}" ]; then
-	    port="-p ${!var}"
+	if [ "${SSH_IDENT-}" ]; then
+	    ssh="ssh -A -i .ssh/${SSH_IDENT}"
 	else
-	    port=
+	    ssh="ssh -A"
 	fi
-	ssh="ssh -A"
 	if [ "$ignoreerrors" ]; then
-	    $ssh $port ${user}@$h "$cd${QUOTE_ARGS}" || true
+	    $ssh ${user}@$h "$cd${QUOTE_ARGS}" || true
 	else
-	    $ssh $port ${user}@$h "$cd${QUOTE_ARGS}"
+	    $ssh ${user}@$h "$cd${QUOTE_ARGS}"
 	fi
     done
 }
