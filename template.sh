@@ -1,7 +1,8 @@
 #! /usr/bin/env bash
 # <blah blah blah>
 
-set -eu
+# -E allows -e to work with 'trap ... ERR'
+set -ueE
 set -o pipefail
 # have case and [[ do case-insensitive matches
 shopt -s nocasematch
@@ -57,16 +58,24 @@ function d {
     fi
 }
 
+lockfile="/tmp/${prog}.lock"
+
+# ensure that only one copy of this script is running at any given time
+lockfile -r 0 $lockfile || errordie $prog is already running
+
+tempfile="/tmp/${prog}temp$$"
+rm -f $tempfile 
+function exit_cleanup {
+    /bin/rm -f $tempfile $lockfile
+}
+function err_report {
+    echo "Error on line $(caller)" 1>&2
+}
+trap err_report   ERR
+trap exit_cleanup EXIT
+
 # main body is in a list so the script can be changed while in use
 {
-    lockfile="/tmp/${prog}.lock"
-    tempfile="/tmp/${prog}temp$$"
-    rm -f $tempfile 
-    trap "/bin/rm -f $tempfile $lockfile" EXIT
-
-    # ensure that only one copy of this script is running at any given time
-    lockfile -r 0 $lockfile || errordie $prog is already running
-
     find ... > $tempfile
     while read line; do
 	# this stuff happens in the same shell as the main script
