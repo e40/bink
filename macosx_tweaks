@@ -275,11 +275,14 @@ d "Enable Debug Menu in the Mac App Store" \
 d "Chrome: Use the system-native print preview dialog" \
   com.google.Chrome DisablePrintPreview -bool true
 
+# Remove the badge associated with "start using icloud" in the 
+# System Preferences.  Man, that was annoying!!
+defaults delete com.apple.systempreferences AttentionPrefBundleIDs || true
+
 [ "$restart_finder" ] && killall Finder
 [ "$restart_systemuiserver" ] && 
     echo "starting system UI server" &&
     killall -KILL SystemUIServer
-
 
 ###############################################################################
 
@@ -316,45 +319,33 @@ fi
 # Restart automatically if the computer freezes
 sudo systemsetup -setrestartfreeze on
 
-sudo softwareupdate --ignore "macOS Catalina"
-defaults delete com.apple.preferences.softwareupdate \
-	 LatestMajorOSSeenByUserBundleIdentifier
-# Now this will not list it (for now):
-#softwareupdate --list
-# Thanks to: https://lapcatsoftware.com/articles/software-update.html
-
 # Never go into computer sleep mode
 [ "$USER" = "layer" ] &&
     sudo systemsetup -setcomputersleep Off > /dev/null
 
 # clear the Quicklook thumbnail cache
 qlmanage -r cache
-# disable the Quicklook thumbnail cache
-qlmanage -r disablecache
-### unnecessary due to the above??
-#rm -rfv "$HOME/Library/Application Support/Quick Look/*"
-#chmod -R 000 "$HOME/Library/Application Support/Quick Look"
-#chflags -R uchg "$HOME/Library/Application Support/Quick Look"
 
-# remove and prevent macOS from collecting sensitive info about what I type,
+# prevent macOS from collecting sensitive info about what I type,
 # even if user dictionary and suggestions are off.
-rm -rfv \
-   "$HOME/Library/LanguageModeling/*" \
-   "$HOME/Library/Spelling/*" \
-   "$HOME/Library/Suggestions/*"
 chmod -R 000 \
       $HOME/Library/LanguageModeling \
       $HOME/Library/Spelling \
-      $HOME/Library/Suggestions
+      $HOME/Library/Suggestions || true
 chflags -R uchg \
 	$HOME/Library/LanguageModeling \
 	$HOME/Library/Spelling \
-	$HOME/Library/Suggestions
+	$HOME/Library/Suggestions || true
 
 # Blacklist iTunes.app from running
 # Santa installed from https://github.com/google/santa/releases
 if type -p santactl > /dev/null; then
-    sudo santactl rule --blacklist --path /Applications/iTunes.app/
+    for app in Music Books Mail Maps News Siri Stocks
+    do
+	temp=/System/Applications/${app}.app/
+	echo santa blacklist $temp
+	sudo santactl rule --blacklist --path $temp
+    done
 fi
 
 # prevent auto-mounting of remote file systems in Finder by directing
