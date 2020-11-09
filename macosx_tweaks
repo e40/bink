@@ -326,17 +326,6 @@ sudo systemsetup -setrestartfreeze on
 # clear the Quicklook thumbnail cache
 qlmanage -r cache
 
-# prevent macOS from collecting sensitive info about what I type,
-# even if user dictionary and suggestions are off.
-chmod -R 000 \
-      $HOME/Library/LanguageModeling \
-      $HOME/Library/Spelling \
-      $HOME/Library/Suggestions || true
-chflags -R uchg \
-	$HOME/Library/LanguageModeling \
-	$HOME/Library/Spelling \
-	$HOME/Library/Suggestions || true
-
 # Blacklist iTunes.app from running
 # Santa installed from https://github.com/google/santa/releases
 if type -p santactl > /dev/null; then
