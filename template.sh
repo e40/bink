@@ -65,6 +65,7 @@ lockfile -r 0 $lockfile || errordie $prog is already running
 tempfile="/tmp/${prog}temp$$"
 rm -f $tempfile 
 function exit_cleanup {
+    echo "Error on line $(caller)" 1>&2
     /bin/rm -f $tempfile $lockfile
 }
 function err_report {
