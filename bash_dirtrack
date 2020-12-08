@@ -1,0 +1,122 @@
+#! /bin/bash
+# BASH directory tracking
+# See bash_dirtrack.md for details.
+#
+# Assumptions:
+# - $MACH is set to the equivalent of $(hostname -s)
+# - BASH 4.x or later
+
+# Check the current directory for signs it is an ACL binary directory.
+# If it is, then set up the the ACL build environment in BASH.
+function __do_acl_build_env_setup {
+    # This gives an easy way to short circuit the source'ing of env.sh
+    [ "${ENV_SH_DEBUG-}" ] && return 0
+    if [ -f makefile.m -a -f env.sh -a -f ../makefile.top ]; then
+	source env.sh
+    fi
+    return 0
+}
+
+# usage: __my_localize_path path
+#  return a local version of PATH if it uses NFS to access a resource
+#  on the same machine, as given by $MACH.
+function __my_localize_path {
+    # lockf(3) doesn't work on FreeBSD on an NFS-mounted filesystem, so
+    # remove the /net/<host> so ACL tests work on FreeBSD, when on
+    # the <host>.  This solution works quite nicely with directory tracking
+    # in Emacs.  See also scm-bin/fiemacsclient for hacks to handle the
+    # case where emacs and emacsclient are run on different machines.
+    local dir="$1"
+    local temp
+
+    if [ ! -e "$dir" ]; then
+	echo $dir does not exist 1>&2
+	return 1
+    fi
+
+    # Do some transformations, so locatization can happen.
+    # The first is layer-specific and the 2nd is company wide.
+    # Remember that ~/l/.. symlinks can turn into /fi/.. paths.
+
+    if [[ "$dir" =~ ^$HOME/l/ ]]; then
+	if [[ $dir =~ ^(.*)/$ ]]; then
+	    dir="${BASH_REMATCH[1]}"
+	fi
+	temp="$(readlink -f "$dir")"
+	if [ ! "$temp" ]; then
+	    echo expansion of $dir was null 1>&2
+	    return 1
+	elif [ ! -e "$temp" ]; then
+	    echo expansion of $dir does not exist: $temp 1>&2
+	    return 1
+	fi
+	dir="$temp"
+    fi
+
+    if [[ "$dir" =~ ^/fi/ ]]; then
+	temp="$(builtin cd "$dir"; pwd -P)"
+	if [[ $temp =~ ^([a-zA-z0-9]+):(/.*) ]]; then
+	    # autofs 'nobind' screws us again!
+	    dir="/net/${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+	else
+	    dir="$temp"
+	fi
+    fi
+
+    if [[ "$dir" =~ ^/net/([^/]+)(/.*) ]]; then
+	if [ "${BASH_REMATCH[1]}" = "$MACH" ]; then
+	    dir="${BASH_REMATCH[2]}"
+	    echo "[ using local path: $dir ]" 1>&2
+	fi
+    fi
+    echo "$dir"
+}
+
+function cd {
+    local dir
+    local args
+
+    if [ $# -eq 0 ]; then
+	# accessing $HOME via NFS sucks!
+	dir="$HOME"
+	args=
+    else
+	# separate the directory from the options
+	local n=$(( ${#@} - 1 ))
+	args="${@:1:$n}"
+	dir="${@: -1}"
+	if [[ $dir =~ ^/scp:[^:]+:(.*) ]]; then
+	    # strip off the prefix, which is solely
+	    # for Emacs to track the directory properly.
+	    dir="${BASH_REMATCH[1]}"
+	fi
+    fi
+
+    if dir="$(__my_localize_path "$dir")"; then
+	builtin cd $args "$dir" && __do_acl_build_env_setup
+    fi
+}
+
+function pushd {
+    if [ $# -eq 0 ]; then
+	builtin pushd && __do_acl_build_env_setup
+    elif [[ $1 =~ ^[-+] ]]; then
+	builtin pushd $1 && __do_acl_build_env_setup
+    else
+	local n=$(( ${#@} - 1 ))
+	local args="${@:1:$n}"
+	local dir="${@: -1}"
+	if [[ $dir =~ ^/scp:[^:]+:(.*) ]]; then
+	    # strip off the prefix, which is solely
+	    # for Emacs to track the directory properly.
+	    dir="${BASH_REMATCH[1]}"
+	fi
+	if dir="$(__my_localize_path "$dir")"; then
+	    builtin pushd $args "$dir" && __do_acl_build_env_setup
+	fi
+    fi
+}
+
+function popd {
+    builtin popd "$@" && __do_acl_build_env_setup
+}
