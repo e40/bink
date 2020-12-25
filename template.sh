@@ -2,8 +2,7 @@
 # <blah blah blah>
 
 # -E allows -e to work with 'trap ... ERR'
-set -ueE
-set -o pipefail
+set -ueE -o pipefail
 # have case and [[ do case-insensitive matches
 shopt -s nocasematch
 
