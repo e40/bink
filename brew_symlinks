@@ -61,7 +61,7 @@ function d {
     if id -Gn $USER | grep -q -w admin; then
 	ln="ln"
     else
-	ln="sudo -u admin ln"
+	ln="ssh -i $HOME/.ssh/id_rsa_nopw admin@$(hostname -s) ln"
     fi
 
     cd $src
