@@ -39,9 +39,9 @@ elif [ -x /usr/local/bin/brew ]; then
     # 'xmlstarlet' and 'shellcheck' are quick to install in Homebrew
     packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
     # procmail is for lockfile
-    packages="$packages python python@2 rsync lsof p7zip procmail ncdu telnet"
+    packages="$packages python rsync lsof p7zip procmail ncdu telnet"
     # smartmontools is large so don't add it to the default list
-    packages="$packages rclone duti"
+    packages="$packages rclone duti gnu-getopt"
     if [[ $hostname =~ mack2 ]]; then
 	packages="$packages exiftool"
     fi
