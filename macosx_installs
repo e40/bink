@@ -28,13 +28,13 @@ if [ -x /opt/local/bin/port ]; then
     update="selfupdate"
     upgrade="upgrade outdated"
     cleanup="uninstall inactive"
-elif [ -x /usr/local/bin/brew ]; then
+elif type -p brew > /dev/null; then
     macports=
-    brew=notnull
+    brew="$(brew --prefix)/bin/brew"
     if id -Gn $USER | grep -q -w admin; then
-	manager="/usr/local/bin/brew"
+	manager="${brew}"
     else
-	manager="ssh -i $HOME/.ssh/id_rsa_nopw admin@$(hostname -s) /usr/local/bin/brew"
+	manager="ssh -i $HOME/.ssh/id_rsa_nopw admin@$(hostname -s) ${brew}"
     fi
     # 'xmlstarlet' and 'shellcheck' are quick to install in Homebrew
     packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
@@ -43,6 +43,7 @@ elif [ -x /usr/local/bin/brew ]; then
     # smartmontools is large so don't add it to the default list
     packages="$packages rclone duti gnu-getopt"
     if [[ $hostname =~ mack2 ]]; then
+	# photography tools
 	packages="$packages exiftool"
     fi
     update="update"

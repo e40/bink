@@ -7,12 +7,21 @@ set -o pipefail
 
 prog="$(basename "$0")"
 
+function errordie {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    exit 1
+}
+
+type -p brew > /dev/null || errordie brew is not installed or in PATH
+
+prefix=$(brew --prefix)
+
 function usage {
     [ "${*-}" ] && echo "$prog: $*" 1>&2
     cat 1>&2 <<EOF
 Usage: $prog [--exec] [-q]
 
-Print what brew links should be created in /usr/local/bin/.
+Print what brew links should be created in ${prefix}/bin/.
 
 Command line args:
 
@@ -22,11 +31,6 @@ Command line args:
 Also, make symlinks for these extra programs:
   $extras
 EOF
-    exit 1
-}
-
-function errordie {
-    [ "${*-}" ] && echo "$prog: $*" 1>&2
     exit 1
 }
 
@@ -55,8 +59,8 @@ function d {
 
 # main body is in a list so the script can be changed while in use
 {
-    src=/usr/local/opt
-    dst=/usr/local/bin
+    src=${prefix}/opt
+    dst=${prefix}/bin
 
     if id -Gn $USER | grep -q -w admin; then
 	ln="ln"
@@ -94,7 +98,7 @@ function d {
 	fi
     done
 
-    coreutils=/usr/local/Cellar/coreutils
+    coreutils=${prefix}/Cellar/coreutils
 
     # Clumsy way to make sure there is only one version of
     # coreutils installed, since I don't know if it's even possible
