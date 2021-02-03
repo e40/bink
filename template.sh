@@ -26,18 +26,24 @@ function errordie {
     exit 1
 }
 
+if ! TEMP=$(getopt --shell bash -o f: -l debug,file: -n $prog -- "$@"); then
+    exit 1
+fi
+
+eval set -- "$TEMP"
+
 debug=
 file=
 
 while [ $# -gt 0 ]; do
     case $1 in
         --debug) debug=$1 ;;
-        --file)
+        -f|--file)
 	    [ $# -ge 2 ] || usage $1: missing companion argument 
             shift
             file="$1"
             ;;
-        -*) usage unknown argument: $1 ;;
+        --) ;;
         *)  usage extra args: $*
 	    ##or, choose this if extra arg processing down below
 	    #break
