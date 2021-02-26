@@ -330,14 +330,31 @@ sudo systemsetup -setrestartfreeze on
 # clear the Quicklook thumbnail cache
 qlmanage -r cache
 
+tempfile="/tmp/tweakstemp$$"
+rm -f $tempfile 
+function exit_cleanup {
+    /bin/rm -f $tempfile
+}
+trap exit_cleanup EXIT
+
 # Blacklist iTunes.app from running
 # Santa installed from https://github.com/google/santa/releases
 if type -p santactl > /dev/null; then
     for app in Music Books Mail Maps News Siri Stocks
     do
-	temp=/System/Applications/${app}.app/
-	echo santa blacklist $temp
-	sudo santactl rule --blacklist --path $temp
+	path=/System/Applications/${app}.app/
+        if ! santactl fileinfo $path > $tempfile; then
+            blacklist=nonnull
+        elif ! grep -q -F Blocked $tempfile; then
+            blacklist=nonnull
+        else
+            echo Already blacklisted: $path
+            blacklist=
+        fi
+        if [ "$blacklist" ]; then
+	    echo santa blacklist $path
+	    sudo santactl rule --blacklist --path $path
+        fi
     done
 fi
 
