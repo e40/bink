@@ -296,9 +296,10 @@ if ! sudo grep tty_tickets /etc/sudoers > /dev/null; then
 TODO: add "Defaults tty_tickets" to /etc/sudoers
 EOF
 fi
-if ! sudo grep -E '^Defaults.*HOME MAIL' /etc/sudoers; then
+if ! sudo grep -E '^Defaults.*HOME MAIL' /etc/sudoers > /dev/null; then
     cat<<EOF
-TODO: comment out the above in /etc/sudoers
+TODO: add this to /etc/sudoers:
+       Defaults  env_keep += "HOME MAIL"
 EOF
 fi
 
