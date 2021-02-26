@@ -280,7 +280,7 @@ d "Chrome: Use the system-native print preview dialog" \
 
 # Remove the badge associated with "start using icloud" in the 
 # System Preferences.  Man, that was annoying!!
-defaults delete com.apple.systempreferences AttentionPrefBundleIDs || true
+#defaults delete com.apple.systempreferences AttentionPrefBundleIDs || true
 
 [ "$restart_finder" ] && killall Finder
 [ "$restart_systemuiserver" ] && 
