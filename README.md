@@ -15,6 +15,7 @@ Stackoverflow gets lots of thanks.
 | genuuid         | cheap UUID generation on Linux/macOS |
 | git.sh          | run git commands in directories specified by config |
 | gitstatus       | wrapper for git.sh using status |
+| gsync.sh        | script to sync git repos via github with onall |
 | knock           | knock but no more than needed |
 | install_agent_wrapper.sh | SSH agent wrapper for Dock-started apps |
 | m               | mail result of executing command to an email address |
