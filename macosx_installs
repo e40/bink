@@ -5,99 +5,90 @@ set -o pipefail
 
 prog="$(basename "$0")"
 
-function errordie {
-    [ "${*-}" ] && echo "$prog: $*" 1>&2
-    exit 1
-}
-
-# Common to both Homebrew and MacPorts
-packages="autossh bash coreutils curl diffutils findutils \
-       git grep jq moreutils openssh wget"
-
-hostname=$(hostname)
-
-if [ -x /opt/local/bin/port ]; then
-    macports=notnull
-    brew=
-    manager="sudo /opt/local/bin/port -N"
-    packages="$packages fwknop-client gsed gnutar parallel perl5 man"
-    if [[ $hostname =~ mack2 ]]; then
-	# shellcheck pulls in a /lot/ of depends
-	packages="$packages xmlstarlet shellcheck"
-    fi
-    update="selfupdate"
-    upgrade="upgrade outdated"
-    cleanup="uninstall inactive"
-elif type -p brew > /dev/null; then
-    macports=
-    brew="$(brew --prefix)/bin/brew"
-    if id -Gn $USER | grep -q -w admin; then
-	manager="${brew}"
-    else
-	manager="ssh -i $HOME/.ssh/id_rsa_nopw admin@$(hostname -s) ${brew}"
-    fi
-    # 'xmlstarlet' and 'shellcheck' are quick to install in Homebrew
-    packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
-    # procmail is for lockfile
-    packages="$packages python rsync lsof p7zip procmail ncdu telnet"
-    # smartmontools is large so don't add it to the default list
-    packages="$packages rclone duti gnu-getopt"
-    if [[ $hostname =~ mack2 ]]; then
-	# photography tools
-	packages="$packages exiftool"
-    fi
-    update="update"
-    upgrade="upgrade"
-    cleanup="cleanup"
-else
-    errordie cannot find MacPorts or Homebrew package manager.
-fi
-
-###############################################################################
-
 function usage {
     [ "${*-}" ] && echo "$prog: $*" 1>&2
     cat 1>&2 <<EOF
-Usage: $prog [--debug] [--help] [--clean]
+Usage: $prog [--clean]
+Usage: $prog --list
 
-Install ports/formulae for MacPorts/Homebrew.  The following
-packages will be installed:
-$(echo $packages | xargs -n 6 echo "  ")
+Install Homebrew packages.  To list packages 
+use --list.
 
 Options:
---debug   :: show what would be done
 --clean   :: clean up after installation
 EOF
     exit 1
 }
 
-debug=
+function errordie {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    exit 1
+}
+
+type -p brew > /dev/null || errordie Homebrew is not installed
+
+function d {
+    echo "+ $*"
+    "$@"
+}
+
+packages_with_options=()
+
+hostname=$(hostname)
+
+brew="$(brew --prefix)/bin/brew"
+if id -Gn $USER | grep -q -w admin; then
+    manager="${brew}"
+else
+    manager="ssh -i $HOME/.ssh/id_rsa_nopw admin@$(hostname -s) ${brew}"
+fi
+
+packages="autossh bash coreutils curl diffutils findutils \
+          git grep jq moreutils openssh wget"
+
+packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
+# procmail is for lockfile
+packages="$packages python rsync lsof p7zip procmail ncdu telnet"
+# smartmontools is large so don't add it to the default list
+packages="$packages rclone duti gnu-getopt"
+
+if [[ $hostname =~ (mack2) ]]; then
+    # photography tools
+    packages="$packages exiftool"
+fi
+
+if [[ $hostname =~ (mack2|mini18) ]]; then
+    # ffmpeg with improved AAC codec
+    packages_with_options+=("homebrew-ffmpeg/ffmpeg/ffmpeg --with-fdk-aac")
+fi
+
+###############################################################################
+
 clean=
+list=
 
 while [ $# -gt 0 ]; do
     case $1 in
         --help)  usage ;;
         --clean) clean=$1 ;;
-        --debug) debug=$1 ;;
+        --list)  list=$1 ;;
         *)       break ;;
     esac
     shift
 done
 
-function d {
-    if [ "$debug" ]; then
-	echo "would: $*"
-    else
-	echo "+ $*"
-        "$@"
-    fi
-}
+if [ "$list" ]; then
+    for p in $packages; do echo $p; done
+    for p in "${packages_with_options[@]}"; do echo $p; done
+    exit 0
+fi
 
-# A good time to make sure analytics are turned off
-[ "$brew" ] && d $manager analytics off
-
-d $manager $update
-d $manager $upgrade
+d $manager analytics off
+d $manager update
+d $manager upgrade
 d $manager install $packages
-
-[ "$clean" ] && d $manager $cleanup
+for package_with_options in "${packages_with_options[@]}"; do
+    d $manager install $package_with_options
+done
+[ "$clean" ] && d $manager cleanup
+exit 0
