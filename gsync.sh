@@ -20,7 +20,7 @@ git remote get-url origin &> /dev/null || errordie local remote not defined
 origin=$(git remote get-url origin)
 local=$(git remote get-url local)
 
-[[ $local =~ ^git:/git\.repo/ ]] || errordie local remote is not local
+[[ $local =~ ^git:/ ]] || errordie local remote is not local
 [[ $origin =~ github ]] || errordie origin remote is not to github
 
 {
