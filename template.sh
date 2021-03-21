@@ -26,7 +26,7 @@ function errordie {
     exit 1
 }
 
-if ! TEMP=$(getopt --shell bash -o f: -l debug,file: -n $prog -- "$@"); then
+if ! TEMP=$(getopt --shell bash -o f: -l debug,file: -n "$prog" -- "$@"); then
     exit 1
 fi
 
@@ -39,12 +39,12 @@ while [ $# -gt 0 ]; do
     case $1 in
         --debug) debug=$1 ;;
         -f|--file)
-	    [ $# -ge 2 ] || usage $1: missing companion argument 
+	    [ $# -ge 2 ] || usage "$1": missing companion argument 
             shift
             file="$1"
             ;;
         --) ;;
-        *)  usage extra args: $*
+        *)  usage extra args: "$@"
 	    ##or, choose this if extra arg processing down below
 	    #break
 	    ;;
@@ -52,7 +52,9 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-[ $# -eq 2 ] || echo do this for the 2 arg case
+[ -f "$file" ] || errordie "$file" does not exist
+
+[ $# -eq 2 ] || echo "do this for the 2 arg case"
 
 function d {
     if [ "$debug" ]; then
@@ -66,12 +68,12 @@ function d {
 lockfile="/tmp/${prog}.lock"
 
 # ensure that only one copy of this script is running at any given time
-lockfile -r 0 $lockfile || errordie $prog is already running
+lockfile -r 0 "$lockfile" || errordie program is already running
 
 tempfile="/tmp/${prog}temp$$"
-rm -f $tempfile 
+rm -f "$tempfile"
 function exit_cleanup {
-    /bin/rm -f $tempfile $lockfile
+    /bin/rm -f "$tempfile" "$lockfile"
 }
 function err_report {
     echo "Error on line $(caller)" 1>&2
@@ -81,14 +83,16 @@ trap exit_cleanup EXIT
 
 # main body is in a list so the script can be changed while in use
 {
-    find ... > $tempfile
-    while read line; do
+    find ... > "$tempfile"
+    while read -r line; do
 	# this stuff happens in the same shell as the main script
+        echo "$line"
     done <<< "$(cat "$tempfile")"
 
-    find ... |
-	while read line; do
+    find .. .. |
+	while read -r line; do
 	    # this stuff happens in a subshell and can't modify variables above
+            echo "$line"
 	done
 
     ...
