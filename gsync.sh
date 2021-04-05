@@ -35,13 +35,8 @@ local=$(git remote get-url local)
         d git push gitlab master
     fi
 
-    if [[ $HOME =~ /net/[a-zA-Z0-9]+(/.*) ]]; then
-        home=${BASH_REMATCH[1]}
-    else
-        home=$HOME
-    fi
-
-    d onall -d ${PWD##$home/} git pull -r
+    # execute it in remote directories in the same relative directory
+    d onall -d ${PWD##$HOME/} git pull -r
 
     exit 0
 }
