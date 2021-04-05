@@ -37,8 +37,9 @@ local=$(git remote get-url local)
 
     # Only remove the /net/$host prefix is $PWD doesn't have it
     if [[ $HOME =~ /net/[a-zA-Z0-9]+(/.*) ]]; then
+        temp=${BASH_REMATCH[1]}
         if [[ ! $PWD =~ ^/net ]]; then
-            home=${BASH_REMATCH[1]}
+            home=$temp
         else
             home=$HOME
         fi
