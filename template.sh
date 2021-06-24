@@ -81,6 +81,12 @@ function err_report {
 trap err_report   ERR
 trap exit_cleanup EXIT
 
+output="script.out"
+# Send all output to $output AND stdout
+exec &> >(tee -a "$output")
+# Send all output to $output
+exec &> > "$output"
+
 # main body is in a list so the script can be changed while in use
 {
     find ... > "$tempfile"
