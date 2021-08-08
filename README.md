@@ -29,6 +29,7 @@ Stackoverflow gets lots of thanks.
 | pmv_test.sh     | test suite for `pmv` |
 | reload_crontab  | reload `$HOME/.crontab.$host` if different |
 | sleepcontrol*   | [macOS: scripts for controlling sleep behavior](sleepcontrol.md) |
+| sshwrap         | SSH wrapper to create `$HOME/.ssh/config` |
 | {start,kill}_caffeinate_daemon | keep a macOS machine awake for a period of time |
 | tarsum          | print summation of space used in a tar file |
 | turn-off-spotlight.sh | turn off that Spotlight nonsense |

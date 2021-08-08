@@ -1,0 +1,128 @@
+#! /usr/bin/env bash
+# Wrapper for SSH the constructs ~/.ssh/config.
+#
+# To use this:
+#  - create ~/.sshwraprc
+#  - in $PATH before the real ssh link to this script with the name `ssh`
+#    and `scp`
+#
+# Yes, SSH version >= 7.3p1 have the Include directive, but some machines
+# I use don't have that version.  Also, SunOS SSH doesn't have Include.
+#
+# Include would make something like this possible:
+#
+#    Include ~/.ssh/config_head
+#    Include ~/.ssh/config_fi
+#
+#    # `Host' matches the TO host not the host we're initiating from.
+#    # The following includes the external config only when on my laptop.
+#    Match exec "test %L = gazorpazorp"
+#      Include ~/.ssh/config_external
+#
+#    Match exec "test %L != gazorpazorp"
+#      Include ~/.ssh/config_internal
+
+set -ueE -o pipefail
+
+prog="$(basename "$0")"
+
+function errordie {
+    [ "${*-}" ] && echo "Error: ${prog}: $*" 1>&2
+    exit 1
+}
+
+rc="$HOME/.sshwraprc"
+
+[ -f "$rc" ] || errordie "$rc does not exist"
+
+source "$rc"
+
+[ ${#__sshwrap_config_files[@]} -gt 0 ] ||
+    errordie "__sshwrap_config_files not defined by $rc"
+
+function executable_p {
+    if [ -x "$1" ]; then
+	echo "$1"
+	return 0
+    else
+	return 1
+    fi
+}
+
+# this will be either ssh or scp
+app=$(basename "${BASH_SOURCE[0]}")
+
+if realsxx=$(executable_p "/opt/local/bin/${app}"); then
+    : # macOS Mac Ports
+elif realsxx=$(executable_p "/usr/local/bin/${app}"); then
+    : # macOS Homebrew
+elif realsxx=$(executable_p "/opt/homebrew/bin/${app}"); then
+    : # macOS Homebrew on M1/Big Sur
+elif realsxx=$(executable_p "/usr/bin/${app}"); then
+    :
+elif realsxx=$(executable_p "/bin/${app}"); then
+    :
+else
+    realsxx=
+fi
+
+[ "$realsxx" ] || errordie "cannot find ${app} binary"
+
+p="$HOME/.ssh"
+
+rebuild=
+if [ ! -f "$p/config" ]; then
+    rebuild=nonnull
+else
+    for config in "$rc" "${__sshwrap_config_files[@]}"; do
+        if [ "$config" -nt "$p/config" ]; then
+            rebuild=nonnull
+            break
+        else
+            #echo DEBUG: $config not newer than $p/config 1>&2
+            :
+        fi
+    done
+fi
+
+lockfile="/tmp/${prog}.lock"
+
+function exit_cleanup {
+    /bin/rm -f "$lockfile"
+}
+function err_report {
+    echo "Error on line $(caller)" 1>&2
+}
+trap err_report   ERR
+trap exit_cleanup EXIT
+
+if [ "$rebuild" ]; then
+    #echo DEBUG: rebuilding $p/config 1>&2
+
+    # lock to update $p/config
+    i=0
+    while true; do
+        if ! lockfile -r 0 "$lockfile"; then
+            if [ $i -gt 4 ]; then
+                errordie "lockfile $lockfile busy could not update $p/config"
+            fi
+            i=$(( i + 1 ))
+        fi
+        # got lock file, get out of here
+        break
+    done
+
+    #echo DEBUG: config files: "${__sshwrap_config_files[@]}" 2>&1
+    cat "${__sshwrap_config_files[@]}" > "$p/config"
+
+    rm -f "$lockfile"
+fi
+
+if [[ $HOSTNAME =~ relay ]]; then
+    # SSH too old there
+    addkeys=
+else
+    addkeys="-o AddKeysToAgent=yes"
+fi
+
+exec $realsxx $addkeys "$@"
