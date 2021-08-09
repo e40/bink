@@ -71,7 +71,7 @@ fi
 p="$HOME/.ssh"
 
 rebuild=
-if [ ! -f "$p/config" ]; then
+if [ "${__sshwraprc_force_update-}" ] || [ ! -f "$p/config" ]; then
     rebuild=nonnull
 else
     for config in "$rc" "${__sshwrap_config_files[@]}"; do
