@@ -17,7 +17,7 @@ Example `$HOME/.sshwraprc`:
 __sshwraprc_cache_config="$HOME/.sshwraprc.cached_config"
 __sshwraprc_cache_ip="$HOME/.sshwraprc.cached_ip"
 
-# if non-zero then force an update to ~/.ssh/config
+# if non-null then force an update to ~/.ssh/config
 __sshwraprc_force_update=
 
 if [ "$(hostname -s)" = "gazorpazorp" ]; then
@@ -57,5 +57,4 @@ fi
 cat <<EOF > "${__sshwraprc_cache_config}"
 __sshwrap_config_files=( ${__sshwrap_config_files[@]} )
 EOF
-
 ```
