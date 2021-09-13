@@ -53,8 +53,11 @@ packages="$packages python rsync lsof p7zip procmail ncdu telnet"
 packages="$packages rclone duti gnu-getopt"
 
 if [[ $hostname =~ (mack2) ]]; then
-    # photography tools
-    packages="$packages exiftool"
+    # "imagemagick" and "exiftool" are photography tools used
+    #   by various scripts
+    # "basictex" is for the program "pdflatex" used by...
+    # "pandoc" to convert markdown to PDF files
+    packages="$packages imagemagick exiftool basictex pandoc"
 fi
 
 if [[ $hostname =~ (mack2|mini18) ]]; then
