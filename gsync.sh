@@ -1,4 +1,10 @@
 #! /usr/bin/env bash
+#
+# setup:
+#  this is optional:
+#    git remote add gitlab git@gitlab.com:e40/bink.git
+# empire:
+#  git remote add local figit:/repo/users/git.layer/bink
 
 set -ue -o pipefail
 
