@@ -125,7 +125,7 @@ if [ "$rebuild" ]; then
     rm -f "$lockfile"
 fi
 
-if [[ $HOSTNAME =~ relay ]]; then
+if [[ $HOSTNAME =~ (tenner|relay) ]]; then
     # SSH too old there
     addkeys=
 else
