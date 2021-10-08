@@ -96,6 +96,13 @@ function err_report {
 trap err_report   ERR
 trap exit_cleanup EXIT
 
+# thor/thunder don't have lockfile
+if ! type -p lockfile &> /dev/null; then
+    function lockfile {
+        :
+    }
+fi
+
 if [ "$rebuild" ]; then
     #echo DEBUG: rebuilding $p/config 1>&2
 
