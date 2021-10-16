@@ -340,7 +340,7 @@ trap exit_cleanup EXIT
 # Blacklist iTunes.app from running
 # Santa installed from https://github.com/google/santa/releases
 if type -p santactl > /dev/null; then
-    for app in Music Books Mail Maps News Siri Stocks
+    for app in TV Music Books Mail Maps News Siri Stocks
     do
 	path=/System/Applications/${app}.app/
         if ! santactl fileinfo $path > $tempfile; then
