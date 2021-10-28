@@ -36,15 +36,17 @@ packages_with_options=()
 
 hostname=$(hostname)
 
-brew="$(brew --prefix)/bin/brew"
+# For Apple Silicon Macs, make sure to install the Intel version, for now.
+brew="arch -arch x86_64 $(brew --prefix)/bin/brew"
 if id -Gn $USER | grep -q -w admin; then
     manager="${brew}"
 else
     manager="ssh -i $HOME/.ssh/id_rsa_nopw admin@$(hostname -s) ${brew}"
 fi
 
+# the screen with macOS sucks
 packages="autossh bash coreutils curl diffutils findutils \
-          git grep jq moreutils openssh wget"
+          git grep jq moreutils openssh wget screen"
 
 packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
 # procmail is for lockfile

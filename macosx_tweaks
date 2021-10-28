@@ -304,12 +304,18 @@ EOF
 fi
 
 shell="$(dscl . -read /Users/$USER UserShell)"
-if [[ ! "$shell" =~ UserShell:\ /(usr|opt)/local/bin/bash ]]; then
-    cat <<EOF 
-SHELL=$SHELL is not /usr/local/bin/bash or /opt/local/bin/bash.
+if [[ ! "$shell" =~ UserShell:\ (.*/bash) ]]; then
+    shell=${BASH_REMATCH[1]}
+    case $temp in
+        /usr/local/bin/bash) ;;
+        /opt/homebrew/bin/bash) ;;
+        /opt/local/bin/bash) ;;
+        *) cat <<EOF 
+Unknown shell: $shell
 Change it in System Preferences, Users & Groups, right-click on user and
 select "Advanced Options..."
 EOF
+    esac
 fi
 
 # Disable captive portal window
