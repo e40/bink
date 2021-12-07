@@ -39,7 +39,7 @@ while [ $# -gt 0 ]; do
     case $1 in
         --debug) debug=$1 ;;
         -f|--file)
-	    [ $# -ge 2 ] || usage "$1": missing companion argument 
+	    [ $# -ge 2 ] || usage "$1: missing companion argument"
             shift
             file="$1"
             ;;
