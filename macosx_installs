@@ -46,7 +46,7 @@ fi
 
 # the screen with macOS sucks
 packages="autossh bash coreutils curl diffutils findutils \
-          git grep jq moreutils openssh wget screen"
+          git grep jq moreutils findutils openssh wget screen"
 
 packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
 # procmail is for lockfile
