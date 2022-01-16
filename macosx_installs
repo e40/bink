@@ -53,6 +53,8 @@ packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
 packages="$packages python rsync lsof p7zip procmail ncdu telnet"
 # smartmontools is large so don't add it to the default list
 packages="$packages rclone duti gnu-getopt"
+# https://alt-tab-macos.netlify.app/
+packages="$packages alt-tab"
 
 if [[ $hostname =~ (mack2) ]]; then
     # "imagemagick" and "exiftool" are photography tools used
