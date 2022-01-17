@@ -1,9 +1,6 @@
 #! /usr/bin/env bash
 
-extras="tar sed grep"
-
-set -eu
-set -o pipefail
+set -eu -o pipefail
 
 prog="$(basename "$0")"
 
@@ -12,24 +9,28 @@ function errordie {
     exit 1
 }
 
-type -p brew > /dev/null || errordie brew is not installed or in PATH
+if ! brew=$(type -p brew); then
+     errordie brew is not installed or in PATH
+fi
 
-prefix=$(brew --prefix)
+prefix=$($brew --prefix)
 
 function usage {
     [ "${*-}" ] && echo "$prog: $*" 1>&2
     cat 1>&2 <<EOF
 Usage: $prog [--exec] [-q]
 
-Print what brew links should be created in ${prefix}/bin/.
+Print what Homebrew symlinks should be created in ${prefix}/bin/.
+Homebrew already creates links for programs which do not conflict
+with native macOS programs.  What this script does: symlink the
+programs in
+  ${prefix}/.../libexec/gnubin
+into ${prefix}/bin/.
 
 Command line args:
 
 --exec  :: create the links printed
 -q      :: do not print info about --exec
-
-Also, make symlinks for these extra programs:
-  $extras
 EOF
     exit 1
 }
@@ -48,78 +49,62 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-function d {
-    if [ ! "$install" ]; then
-	echo "$*"
+# setup admin user
+if id -Gn "$USER" | grep -q -w admin; then
+    admin=
+else
+    admin="admin@$(hostname -s)"
+fi
+
+# usage: x command args
+#   Execute COMMAND with ARGS in the appropriate environment, which
+#   is as user 'admin'.
+function x {
+    local execute=$install
+    if [ "$1" = "--exec" ]; then
+        execute=$1
+        shift
+    fi
+    local command="$1"
+    shift
+    if [ "$execute" ]; then
+        echo "+ $command $*"
+        if [ ! "$admin" ]; then # execute directly
+            "$command" "$@"
+        else # use the admin credentials
+            ssh -i "$HOME/.ssh/id_rsa_nopw" "$admin" "$command" "$@"
+        fi
     else
-	echo "+ $*"
-        "$@"
+        echo "would: $command $*"
     fi
 }
 
-# main body is in a list so the script can be changed while in use
+# so * expands to nothing if there are no matches
+shopt -s nullglob
+
 {
-    src=${prefix}/opt
+    cd "$prefix"
+
+    x --exec "$brew" cleanup
+
+    cd "${prefix}"
+    read -a gnubins <<< "$(find . -name gnubin -print0 | xargs -0 echo)"
+
     dst=${prefix}/bin
 
-    if id -Gn $USER | grep -q -w admin; then
-	ln="ln"
-    else
-	ln="ssh -i $HOME/.ssh/id_rsa_nopw admin@$(hostname -s) ln"
-    fi
-
-    cd $src
-
-    for d in */bin; do
-	[[ $d =~ @ ]] && continue
-	for x in $d/*; do
-	    base=$(basename $x)
-	    bin="${dst}/$base"
-	    shadow="$(which $base)" || true
-	    if [ ! -e "$bin" ]; then
-		if [ "$shadow" ]; then
-		    d $ln -s "$src/$x" ${dst}/$base
-		else
-		    : # not shadowed, ignore it
-		fi
+    for gnubin in "${gnubins[@]}"; do
+        progs=($gnubin/*)
+        for f in "${progs[@]}"; do
+	    base=$(basename "$f")
+	    if [ -L "${dst}/$base" ] && [ ! -e "${dst}/$base" ]; then
+	        # link is bad, so remove it
+	        x rm -f "${dst}/$base"
 	    fi
-	done
-    done
 
-    for e in $extras; do
-	if [ ! -e "${dst}/$e" ]; then
-	    if [ -e ${src}/gnu-$e/bin/g$e ]; then
-		d $ln -s ${src}/gnu-$e/bin/g$e ${dst}/$e
-	    elif [ -e ${src}/$e/bin/g$e ]; then
-		d $ln -s ${src}/$e/bin/g$e ${dst}/$e
-	    else
-		errordie Cannot find $e in ${src}
+	    if [ ! -L "${dst}/$base" ]; then
+	        x ln -s "${prefix}/$f" "${dst}/$base"
 	    fi
-	fi
-    done
-
-    coreutils=${prefix}/Cellar/coreutils
-
-    # Clumsy way to make sure there is only one version of
-    # coreutils installed, since I don't know if it's even possible
-    # to have more than one installed.
-    cd $coreutils
-    if [ $(/bin/ls -1 | wc -l) -ne 1 ]; then
-	errordie there is more than coreutils installed: $(ls -F)
-    fi
-    coreutils=${coreutils}/$(echo *)/libexec/gnubin
-    cd $src
-    
-    for f in ${coreutils}/*; do
-	base=$(basename $f)
-	if [ -L ${dst}/$base -a ! -e ${dst}/$base ]; then
-	    # link is bad
-	    d rm -f "${dst}/$base"
-	fi
-
-	if [ ! -L "${dst}/$base" ]; then
-	    d $ln -s "$f" "${dst}/$base"
-	fi
+        done
     done
 
     if [ ! "$install" ] && [ ! "$quiet" ]; then
