@@ -1,0 +1,20 @@
+#! /usr/bin/env bash
+
+set -eu
+
+host=$(hostname -s)
+function d {
+    echo "+ $*"
+    ssh "admin@$host" "$@"
+}
+
+if ! brew=$(type -p brew); then
+     errordie brew is not installed or in PATH
+fi
+
+
+d "$brew" update
+d "$brew" upgrade
+d "$brew" doctor
+set -x
+brew_symlinks --exec
