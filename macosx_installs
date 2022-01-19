@@ -64,10 +64,10 @@ if [[ $hostname =~ (mack2) ]]; then
     packages="$packages imagemagick exiftool basictex pandoc"
 fi
 
-if [[ $hostname =~ (mack2|mini18) ]]; then
-    # ffmpeg with improved AAC codec
-    packages_with_options+=("homebrew-ffmpeg/ffmpeg/ffmpeg --with-fdk-aac")
-fi
+#if [[ $hostname =~ (mack2|mini18) ]]; then
+#    # ffmpeg with improved AAC codec
+#    packages_with_options+=("homebrew-ffmpeg/ffmpeg/ffmpeg --with-fdk-aac")
+#fi
 
 ###############################################################################
 
