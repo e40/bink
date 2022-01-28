@@ -82,25 +82,6 @@ function __my_ssh_have_one_identity_p {
     fi
 }
 
-# Ensure default identities are added to the running agent.
-function __my_ssh_ensure_default_identities {
-    local n=${#__my_ssh_default_identity[@]} i=0 file md5
-    _debug sshagent DEBUG: n=$n
-    [ "${MY_DEBUG_SSHAGENT-}" ] && ssh-add -E md5 -l 1>&2
-    while [ $i -lt $n ]; do
-	file="${__my_ssh_default_identity[$i]}"
-	md5="${__my_ssh_default_identity_md5[$i]}"
-	_debug sshagent looking for $file $md5
-	if ssh-add -E md5 -l 2>/dev/null | grep $md5 &>/dev/null ; then
-	    _debug sshagent found $md5
-	else
-	    echo NOTE: adding identity $file1>&2
-	    ssh-add $file || echo COULD NOT ADD IDENTITY 1>&2
-	fi
-	i=$(( i + 1 ))
-    done
-}
-
 # Return true if SSH_AUTH_SOCK is connected to an agent which
 # is alive.  "ssh-add -l" will return 0 on success, 1 on failure
 # (no identities) and 2 if the ssh-add is unable to contact the agent.
@@ -235,5 +216,36 @@ function __my_ssh_initialize_agent {
 }
 
 __my_connected_to_ssh_agent_p || __my_ssh_initialize_agent
+
+# This is always defined on windows, right???
+__my_on_windows=${COMSPEC-}
+
+# Ensure default identities are added to the running agent.
+function __my_ssh_ensure_default_identities {
+    local temp
+    local n=${#__my_ssh_default_identity[@]} i=0 file md5
+    _debug sshagent DEBUG: n=$n
+    [ "${MY_DEBUG_SSHAGENT-}" ] && ssh-add -E md5 -l 1>&2
+    while [ $i -lt $n ]; do
+	file="${__my_ssh_default_identity[$i]}"
+	md5="${__my_ssh_default_identity_md5[$i]}"
+	_debug sshagent looking for $file $md5
+	if ssh-add -E md5 -l 2>/dev/null | grep $md5 &>/dev/null ; then
+	    _debug sshagent found $md5
+	else
+	    echo NOTE: adding identity $file1>&2
+            if [ "${__my_on_windows}" ]; then
+                temp="${file}.windows"
+                if [ ! -f "$temp" ] || [ "$file" -nt "$temp" ]; then
+                    cvt -f -u < "$file" > "$temp"
+                    chmod 600 "$temp"
+                fi
+                file="$temp"
+            fi
+	    ssh-add $file || echo COULD NOT ADD IDENTITY 1>&2
+	fi
+	i=$(( i + 1 ))
+    done
+}
 
 __my_ssh_ensure_default_identities
