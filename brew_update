@@ -12,9 +12,16 @@ if ! brew=$(type -p brew); then
      errordie brew is not installed or in PATH
 fi
 
-
-d "$brew" update
-d "$brew" upgrade
-d "$brew" doctor
-set -x
-brew_symlinks --exec
+{
+    d "$brew" update
+    # This specifically does NOT upgrade casks.  So, it doesn't upgrade
+    # alt-tab, for example.  That program does auto-updating.
+    # To ugrade casks, a separate command is needed, see below.
+    d "$brew" upgrade
+    #d "$brew" upgrade --cask
+    d "$brew" cleanup
+    d "$brew" doctor
+    set -x
+    brew_symlinks --exec
+    exit 0
+}
