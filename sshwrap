@@ -71,11 +71,16 @@ fi
 p="$HOME/.ssh"
 
 rebuild=
-if [ "${__sshwraprc_force_update-}" ] || [ ! -f "$p/config" ]; then
+if [ "${__sshwraprc_force_update-}" ]; then
+    #echo "DEBUG: __sshwraprc_force_update non null" 1>&2
+    rebuild=nonnull
+elif [ ! -f "$p/config" ]; then
+    #echo "DEBUG: $p/config does not exist" 1>2
     rebuild=nonnull
 else
     for config in "$rc" "${__sshwrap_config_files[@]}"; do
         if [ "$config" -nt "$p/config" ]; then
+            #echo "DEBUG: $config newer than $p/config" 1>&2
             rebuild=nonnull
             break
         else
@@ -104,7 +109,7 @@ if ! type -p lockfile &> /dev/null; then
 fi
 
 if [ "$rebuild" ]; then
-    #echo DEBUG: rebuilding $p/config 1>&2
+    echo Updating $p/config 1>&2
 
     # lock to update $p/config
     i=0
@@ -119,7 +124,7 @@ if [ "$rebuild" ]; then
         break
     done
 
-    #echo DEBUG: config files: "${__sshwrap_config_files[@]}" 2>&1
+    echo "   configs: ${__sshwrap_config_files[@]}" 1>&2
     cat "${__sshwrap_config_files[@]}" > "$p/config"
 
     rm -f "$lockfile"
