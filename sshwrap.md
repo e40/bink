@@ -15,40 +15,37 @@ Example `$HOME/.sshwraprc`:
 # and we're not on my laptop.
 
 __sshwraprc_cache_config="$HOME/.sshwraprc.cached_config"
-__sshwraprc_cache_ip="$HOME/.sshwraprc.cached_ip"
+__sshwraprc_cache_myip="$HOME/.sshwraprc.cached_ip"
+__sshwraprc_cache_extip="$HOME/.sshwraprc.cached_extip"
 
 # if non-null then force an update to ~/.ssh/config
 __sshwraprc_force_update=
 
-if [ "$(hostname -s)" = "gazorpazorp" ]; then
-    # always check
-    :
-elif [ -f "${__sshwraprc_cache_config}" ]; then
-    source "${__sshwraprc_cache_config}"
+myip=$(curl -4 -s http://icanhazip.com) || errordie could not determine IP
 
-    if [ ${#__sshwrap_config_files[@]} -gt 0 ]; then
-        return 0
-    fi
-    # fall through...
-fi
-
-###############################################################################
-
-ip=$(curl -4 -s http://icanhazip.com) || errordie could not determine IP
-
-if [ ! "$ip" ] || 
-   [ ! -f "${__sshwraprc_cache_ip}" ] ||
-   [ "$ip" != "$(cat "${__sshwraprc_cache_ip}")" ]
+if [ ! "$myip" ] || 
+   [ ! -f "${__sshwraprc_cache_myip}" ] ||
+   [ "$myip" != "$(cat "${__sshwraprc_cache_myip}")" ]
 then
     # either the first time through this code OR
     # laptop moved from one zone to another
+    echo $myip > "${__sshwraprc_cache_myip}"
+    __sshwraprc_force_update=nonnull
+fi
+
+extip=$(my-external-ip)
+
+if [ ! -f "${__sshwraprc_cache_extip}" ] ||
+   [ "$extip" != "$(cat "${__sshwraprc_cache_extip}")" ]
+then
+    # our external IP changed, so force update
+    echo $extip > "${__sshwraprc_cache_extip}"
     __sshwraprc_force_update=nonnull
 fi
 
 __sshwrap_config_files=( $HOME/.ssh/config_top )
 
-# 73.241.139.91 is my Comcast dynamic IP that never changes.
-if [[ $ip =~ ^73\.241\.139\.91 ]]; then
+if [ $myip = $extip ]; then
     __sshwrap_config_files+=( $HOME/.ssh/config_int )
 else
     __sshwrap_config_files+=( $HOME/.ssh/config_ext )
@@ -58,3 +55,9 @@ cat <<EOF > "${__sshwraprc_cache_config}"
 __sshwrap_config_files=( ${__sshwrap_config_files[@]} )
 EOF
 ```
+The script `my-external-ip` does this
+```
+nslookup host.mydomain.com dns1.registrar-servers.com
+```
+I use `dns1.registrar-servers.com` since I use namecheap.com as my
+domain registrar, and that's one of their two nameservers.
