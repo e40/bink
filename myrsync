@@ -91,9 +91,7 @@ elif [ -x /usr/local/bin/rsync ]; then
     # understand the flags we need to preserve Mac OS X
     # file attributes.
     rsync=/usr/local/bin/rsync
-elif rsync --version | grep -q -F 3.0.9; then
-    rsync=rsync
-elif rsync --version | grep -q -F 3.1.2; then
+elif [[ $(rsync --version) =~ version\ 3\. ]]; then
     rsync=rsync
 else
     errordie Could not find the correct version of rsync
