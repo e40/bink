@@ -1,0 +1,10 @@
+#! /bin/sh
+
+exec diff -x '.*~' -x '*.~*~' -x '.#*' \
+    -x '*.orig' -x '*.rej' -x '#*#' \
+    -x CVS -x .git -x .git-branch-name -x .gitignore \
+    '--ignore-matching-lines=^.*\$Id.*\$.*$' \
+    '--ignore-matching-lines=^.*\$Header.*\$.*$' \
+    '--ignore-matching-lines=^.*\$Revision.*\$.*$' \
+    '--ignore-matching-lines=^.*\$Source.*\$.*$' \
+    --ignore-all-space -c "$@"
