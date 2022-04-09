@@ -54,13 +54,13 @@ done
 
 [ -f "$file" ] || errordie "$file" does not exist
 
-[ $# -eq 2 ] || echo "do this for the 2 arg case"
+[ $# -eq 2 ] && echo "do this for the 2 arg case"
 
 function d {
     if [ "$debug" ]; then
-	echo "would: $*"
+	echo "would: $*" 1>&2
     else
-	echo "+ $*"
+	echo "+ $*" 1>&2
         "$@"
     fi
 }
