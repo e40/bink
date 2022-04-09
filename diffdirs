@@ -12,4 +12,4 @@ while test $# -gt 0; do
     shift
 done
 
-diff <(cd "$1"; ls $lsargs -1 .) <(cd "$2"; ls $lsargs -1 .)
+diff <(cd $1; ls $lsargs -1 .) <(cd $2; ls $lsargs -1 .)

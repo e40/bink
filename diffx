@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /usr/bin/env bash
 
 exec diff -x '.*~' -x '*.~*~' -x '.#*' \
     -x '*.orig' -x '*.rej' -x '#*#' \
