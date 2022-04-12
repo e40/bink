@@ -102,7 +102,7 @@ fi
 # Tweaks needed to copy sparse bundles on Mac OS.
 if [ "$(uname)" = "Darwin" ]; then
 
-    baseargs="$baseargs --exclude .fseventsd --exclude .Trashes --exclude .DocumentRevisions-V100 --exclude .Spotlight-V100 --exclude .TemporaryItems"
+    baseargs="$baseargs --exclude .fseventsd --exclude .bzvol --exclude .Trashes --exclude .DocumentRevisions-V100 --exclude .Spotlight-V100 --exclude .TemporaryItems"
 
     # Ideas from:
     #   http://www.lbackup.org/synchronizing_disk_images_between_machines
