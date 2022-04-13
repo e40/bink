@@ -56,15 +56,17 @@ packages="$packages rclone duti gnu-getopt"
 # https://alt-tab-macos.netlify.app/
 packages="$packages alt-tab"
 
-if [[ $hostname =~ (mack2) ]]; then
+if [[ $hostname =~ (max) ]]; then
     # "imagemagick" and "exiftool" are photography tools used
     #   by various scripts
     # "basictex" is for the program "pdflatex" used by...
     # "pandoc" to convert markdown to PDF files
     packages="$packages imagemagick exiftool basictex pandoc"
+    # https://tclementdev.com/timemachineeditor/
+    packages="$packages timemachineeditor"
 fi
 
-#if [[ $hostname =~ (mack2|mini18) ]]; then
+#if [[ $hostname =~ (max|mini18) ]]; then
 #    # ffmpeg with improved AAC codec
 #    packages_with_options+=("homebrew-ffmpeg/ffmpeg/ffmpeg --with-fdk-aac")
 #fi
