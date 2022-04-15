@@ -1,0 +1,3 @@
+#! /usr/bin/env bash
+
+nohup /Applications/Emacs.app/Contents/MacOS/Emacs --debug-init "$@" &> /dev/null &
