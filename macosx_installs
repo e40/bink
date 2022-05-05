@@ -1,4 +1,6 @@
-#! /usr/bin/env bash
+#! /usr/bin/env zsh
+# Use zsh because the native BASH on macOS is too old to
+# run this script.
 
 set -eu
 set -o pipefail
@@ -37,35 +39,42 @@ packages_with_options=()
 hostname=$(hostname)
 
 # For Apple Silicon Macs, make sure to install the Intel version, for now.
-brew="arch -arch x86_64 $(brew --prefix)/bin/brew"
-if id -Gn $USER | grep -q -w admin; then
-    manager="${brew}"
-else
-    manager="ssh -i $HOME/.ssh/id_rsa_nopw admin@$(hostname -s) ${brew}"
+brew="brew"
+# disable running as an admin user, since it doesn't seem to work
+# anymore on M1 Monterey.
+#     if id -Gn $USER | grep -q -w admin; then
+if [ -f "$HOME/.ssh/id_rsa_nopw" ]; then
+    manager=(ssh -i $HOME/.ssh/id_rsa_nopw admin@$(hostname -s) ${brew})
+else # assume SSH works to admin@...
+    manager=(ssh admin@$(hostname -s) ${brew})
 fi
 
-# the screen with macOS sucks
-packages="autossh bash coreutils curl diffutils findutils \
-          git grep jq moreutils findutils openssh wget screen"
 
-packages="$packages fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck"
-# procmail is for lockfile
-packages="$packages python rsync lsof p7zip procmail ncdu telnet"
-# smartmontools is large so don't add it to the default list
-packages="$packages rclone duti gnu-getopt"
-# https://alt-tab-macos.netlify.app/
-packages="$packages alt-tab"
+packages=(autossh bash coreutils curl diffutils findutils
+          git grep jq moreutils findutils openssh wget
+          fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck
+          python rsync lsof p7zip 
+          ncdu telnet rclone duti gnu-getopt
+          # the screen with macOS sucks
+          screen
+          # procmail is for lockfile
+          procmail
+          # https://alt-tab-macos.netlify.app/
+          alt-tab
+         )
 
 if [[ $hostname =~ (max) ]]; then
     # "imagemagick" and "exiftool" are photography tools used
     #   by various scripts
     # "basictex" is for the program "pdflatex" used by...
     # "pandoc" to convert markdown to PDF files
-    packages="$packages imagemagick exiftool basictex pandoc"
-    # https://tclementdev.com/timemachineeditor/
-    packages="$packages timemachineeditor"
+    packages+=(imagemagick exiftool basictex pandoc
+               # https://tclementdev.com/timemachineeditor/
+               timemachineeditor
+              )
 fi
 
+##### too big and I don't really use it much
 #if [[ $hostname =~ (max|mini18) ]]; then
 #    # ffmpeg with improved AAC codec
 #    packages_with_options+=("homebrew-ffmpeg/ffmpeg/ffmpeg --with-fdk-aac")
@@ -87,17 +96,17 @@ while [ $# -gt 0 ]; do
 done
 
 if [ "$list" ]; then
-    for p in $packages; do echo $p; done
+    for p in "${packages[@]}"; do echo $p; done
     for p in "${packages_with_options[@]}"; do echo $p; done
     exit 0
 fi
 
-d $manager analytics off
-d $manager update
-d $manager upgrade
-d $manager install $packages
+d "${manager[@]}" analytics off
+d "${manager[@]}" update
+d "${manager[@]}" upgrade
+d "${manager[@]}" install "${packages[@]}"
 for package_with_options in "${packages_with_options[@]}"; do
-    d $manager install $package_with_options
+    d "${manager[@]}" install $package_with_options
 done
-[ "$clean" ] && d $manager cleanup
+[ "$clean" ] && d "${manager[@]}" cleanup
 exit 0
