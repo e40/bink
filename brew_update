@@ -4,8 +4,13 @@ set -eu
 
 host=$(hostname -s)
 function d {
-    echo "+ $*"
-    ssh "admin@$host" "$@"
+    if id -Gn "$USER" | grep -q -w admin; then
+        echo "+ $*"
+        "$@"
+    else
+        echo "+ ssh admin@$host $*"
+        ssh "admin@$host" "$@"
+    fi
 }
 
 if ! brew=$(type -p brew); then
@@ -16,7 +21,7 @@ fi
     d "$brew" update
     # This specifically does NOT upgrade casks.  So, it doesn't upgrade
     # alt-tab, for example.  That program does auto-updating.
-    # To ugrade casks, a separate command is needed, see below.
+    # To upgrade casks, a separate command is needed, see below.
     d "$brew" upgrade
     #d "$brew" upgrade --cask
     d "$brew" cleanup
