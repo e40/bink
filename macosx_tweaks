@@ -117,6 +117,11 @@ d "Disable shadow in screenshots" \
 d "Enable subpixel font rendering on non-Apple LCDs" \
   NSGlobalDomain AppleFontSmoothing -int 2
 
+# CMD-CTRL click to drag window on any part of it
+# (can't use d because it doesn't have enough args)
+# requires logout/login
+defaults write -g NSWindowShouldDragOnGesture -bool true 
+
 d "Automatically quit printer app once the print jobs complete" \
   com.apple.print.PrintingPrefs "Quit When Finished" -bool true
 
