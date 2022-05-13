@@ -125,11 +125,17 @@ if [ "$rebuild" ]; then
     done
 
     echo "   configs: ${__sshwrap_config_files[@]}" 1>&2
-    cat "${__sshwrap_config_files[@]}" > "$p/config"
+    host=$(sed -E 's/\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+//' <<< "$HOSTNAME")
+    cat "${__sshwrap_config_files[@]}" | \
+        grep -vE '^#' | \
+        sed -E 's/^!/#/g' | \
+        cpp -undef "-D__host_$host" | \
+        grep -vE '^#' > "$p/config"
 
     rm -f "$lockfile"
 fi
 
+# new BASH versions set HOSTNAME, it turns out
 if [[ $HOSTNAME =~ (tenner|teller|relay) ]]; then
     # SSH too old there
     addkeys=
