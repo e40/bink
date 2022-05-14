@@ -90,13 +90,13 @@ exec &> > "$output"
 # main body is in a list so the script can be changed while in use
 {
     find ... > "$tempfile"
-    while read -r line; do
+    while IFS='$\n' read -r line; do
 	# this stuff happens in the same shell as the main script
         echo "$line"
     done <<< "$(cat "$tempfile")"
 
     find .. .. |
-	while read -r line; do
+	while IFS='$\n' read -r line; do
 	    # this stuff happens in a subshell and can't modify variables above
             echo "$line"
 	done
