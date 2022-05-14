@@ -61,6 +61,8 @@ packages=(autossh bash coreutils curl diffutils findutils
           procmail
           # https://alt-tab-macos.netlify.app/
           alt-tab
+          # mailx-like package
+          s-nail
          )
 
 if [[ $hostname =~ (max) ]]; then
