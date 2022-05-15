@@ -432,6 +432,8 @@ ethernet="$(ethernet_device_name)"
 # This makes wake from sleep work better:
 sudo networksetup -setv6LinkLocal "$ethernet" 
 
+./check_fulldiskaccess.sh
+
 exit 0
 
 ###############################################################################
