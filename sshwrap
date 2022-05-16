@@ -130,7 +130,7 @@ if [ "$rebuild" ]; then
     done
 
     echo "   configs: ${__sshwrap_config_files[@]}" 1>&2
-    host=$(sed -e 's/\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+//' <<< "$HOSTNAME")
+    host=$(sed -e 's/\..*$//' <<< "$HOSTNAME")
     cat "${__sshwrap_config_files[@]}" | \
         egrep -v '^#' | \
         sed -e 's/^!/#/g' | \
