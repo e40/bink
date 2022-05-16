@@ -111,6 +111,11 @@ fi
 if [ "$rebuild" ]; then
     echo Updating $p/config 1>&2
 
+    if [ "$(uname -s)" = "SunOS" ]; then
+	cpp=/usr/lib/cpp
+    else
+	cpp=cpp
+    fi
     # lock to update $p/config
     i=0
     while true; do
@@ -125,12 +130,12 @@ if [ "$rebuild" ]; then
     done
 
     echo "   configs: ${__sshwrap_config_files[@]}" 1>&2
-    host=$(sed -e 's/\..*$//' <<< "$HOSTNAME")
+    host=$(sed -e 's/\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+//' <<< "$HOSTNAME")
     cat "${__sshwrap_config_files[@]}" | \
-        grep -vE '^\s*#' | \
-        sed -E 's/^!/#/g' | \
-        cpp -undef "-D__host_$host" | \
-        grep -vE '^#' > "$p/config"
+        egrep -v '^#' | \
+        sed -e 's/^!/#/g' | \
+        $cpp -undef "-D__host_$host" | \
+        egrep -v '^#' > "$p/config"
 
     rm -f "$lockfile"
 fi
