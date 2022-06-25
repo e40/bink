@@ -75,6 +75,9 @@ if [[ $hostname =~ (max) ]]; then
     packages+=(imagemagick exiftool basictex pandoc
                # https://tclementdev.com/timemachineeditor/
                timemachineeditor
+
+               # for Fujitsu ix500 scanner
+               homebrew/cask-drivers/fujitsu-scansnap-home
               )
 fi
 
