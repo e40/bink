@@ -56,6 +56,8 @@ packages=(autossh bash coreutils curl diffutils findutils
           python rsync lsof p7zip 
           ncdu telnet rclone duti gnu-getopt
           sqlite sqldiff
+          # cool commands to learn about other commands
+          cheat tldr
 
           # the screen with macOS sucks
           screen
