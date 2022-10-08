@@ -53,7 +53,7 @@ local=$(git remote get-url local)
         home=$HOME
     fi
 
-    d onall -d ${PWD##$home/} git pull -r
+    d onall -i -d ${PWD##$home/} git pull -r
 
     exit 0
 }
