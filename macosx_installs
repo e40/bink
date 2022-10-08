@@ -55,7 +55,7 @@ packages=(autossh bash coreutils curl diffutils findutils
           fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck
           python rsync lsof p7zip 
           ncdu telnet rclone duti gnu-getopt
-          sqlite sqldiff
+          sqlite sqldiff smartmontools
           # cool commands to learn about other commands
           cheat tldr
 
