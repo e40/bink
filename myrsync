@@ -40,7 +40,7 @@ verbose=-q
 exclude=
 
 maxdelete=250
-baseargs="-a --delete --delete-before --exclude lost+found"
+baseargs=(-a --delete --delete-before --delete-excluded --exclude lost+found)
 
 while [ $# -gt 0 ]; do
     case $1 in
@@ -56,7 +56,7 @@ while [ $# -gt 0 ]; do
 	--no-max-delete) maxdelete= ;;
 	-q) verbose=-q ;;
 	-v) verbose=-v ;;
-	-*) baseargs="$baseargs $1" ;;
+	-*) baseargs+=("$1") ;;
 	*)  # first non-option arg... $1 is source
 	    break
 	    ;;
@@ -64,10 +64,10 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-baseargs="$verbose $baseargs"
+baseargs+=("$verbose")
 
 if [ $# -ne 2 ]; then
-    usage expected two arguments: $*
+    usage "expected two arguments: $*"
 fi
 
 function d {
@@ -78,8 +78,8 @@ function d {
     fi
 }
 
-[ "$exclude" ] && baseargs="$baseargs $exclude"
-[ "$maxdelete" ] && baseargs="$baseargs --max-delete=${maxdelete}"
+[ "$exclude" ]   && baseargs+=("$exclude")
+[ "$maxdelete" ] && baseargs+=("--max-delete=${maxdelete}")
 
 sparse=
 
@@ -102,7 +102,15 @@ fi
 # Tweaks needed to copy sparse bundles on Mac OS.
 if [ "$(uname)" = "Darwin" ]; then
 
-    baseargs="$baseargs --exclude .fseventsd --exclude .bzvol --exclude .Trashes --exclude .DocumentRevisions-V100 --exclude .Spotlight-V100 --exclude .TemporaryItems"
+    baseargs+=(--exclude "*.sparsebundle"
+               --exclude .fseventsd
+               --exclude .bzvol
+               --exclude .DS_Store
+               --exclude .Trashes 
+               --exclude .DocumentRevisions-V100 
+               --exclude .Spotlight-V100 
+               --exclude .TemporaryItems
+               )
 
     # Ideas from:
     #   http://www.lbackup.org/synchronizing_disk_images_between_machines
@@ -131,11 +139,11 @@ if [ "$(uname)" = "Darwin" ]; then
     # --fileflags     preserve file-flags (aka chflags)
     # --force-change  affect user-/system-immutable files/dirs
     [ "$sparse" ] &&
-    baseargs="$baseargs -NHAXEx --fileflags --force-change --rsync-path=$rsync"
+    baseargs+=(-NHAXEx --fileflags --force-change "--rsync-path=$rsync")
 fi
 
 date
-echo "+" $*
+echo "+ $*"
 
 # not supported in centos 7.4: -c arcfour 
 sshargs="ssh -T -o Compression=no -x -i $HOME/.ssh/id_rsa_nopw"
@@ -143,11 +151,13 @@ sshargs="ssh -T -o Compression=no -x -i $HOME/.ssh/id_rsa_nopw"
 
 if [[ $1 == rsync* ]] || [[ $2 == rsync* ]]; then
     if [ "$verbose" = "-v" ]; then
-	echo $rsync $baseargs $*
+	echo $rsync "${baseargs[@]}" "$*"
     fi
-    d $rsync $baseargs "$@"
+    d $rsync "${baseargs[@]}" "$@"
 else
     # not using rsync protocol, so need ssh w/o pw
-    [ "$verbose" = "-v" ] && [ ! "$debug" ] && echo $rsync $baseargs -e "$sshargs" "$@"
-    $rsync $baseargs -e "$sshargs" "$@"
+    [ "$verbose" = "-v" ] &&
+        [ ! "$debug" ] &&
+        echo $rsync "${baseargs[@]}" -e "$sshargs" "$@"
+    d $rsync "${baseargs[@]}" -e "$sshargs" "$@"
 fi
