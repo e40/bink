@@ -88,7 +88,7 @@ shopt -s nullglob
     x --exec "$brew" cleanup
 
     cd "${prefix}"
-    read -a gnubins <<< "$(find . -name gnubin -print0 | xargs -0 echo)"
+    read -a gnubins <<< "$(find . '(' -name bin -o -name gnubin ')' -print0 | xargs -0 echo)"
 
     dst=${prefix}/bin
 
@@ -101,7 +101,9 @@ shopt -s nullglob
 	        x rm -f "${dst}/$base"
 	    fi
 
-	    if [ ! -L "${dst}/$base" ]; then
+	    if [ -e "${dst}/$base" ]; then
+                : # ignore
+	    elif [ ! -L "${dst}/$base" ]; then
 	        x ln -s "${prefix}/$f" "${dst}/$base"
 	    fi
         done
