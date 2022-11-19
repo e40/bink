@@ -56,6 +56,10 @@ packages=(autossh bash coreutils curl diffutils findutils
           python rsync lsof p7zip 
           ncdu telnet rclone duti gnu-getopt
           sqlite sqldiff smartmontools
+
+          # like inotifywait
+          fswatch
+
           # cool commands to learn about other commands
           cheat tldr
 
