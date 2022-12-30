@@ -36,44 +36,50 @@ function d {
 
 packages_with_options=()
 
-hostname=$(hostname)
+host=$(hostname -s)
 
-# For Apple Silicon Macs, make sure to install the Intel version, for now.
 brew="brew"
-# disable running as an admin user, since it doesn't seem to work
-# anymore on M1 Monterey.
-#     if id -Gn $USER | grep -q -w admin; then
-if [ -f "$HOME/.ssh/id_rsa_nopw" ]; then
-    manager=(ssh -i $HOME/.ssh/id_rsa_nopw admin@$(hostname -s) ${brew})
+if id -Gn "$USER" | grep -q -w admin; then
+    manager=$brew
+elif [ -f "$HOME/.ssh/id_rsa_nopw" ]; then
+    manager=(ssh -i $HOME/.ssh/id_rsa_nopw admin@$host ${brew})
 else # assume SSH works to admin@...
-    manager=(ssh admin@$(hostname -s) ${brew})
+    manager=(ssh admin@$host ${brew})
 fi
 
 
-packages=(autossh bash coreutils curl diffutils findutils
-          git grep jq moreutils findutils openssh wget
-          fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck
-          python rsync lsof p7zip 
-          ncdu telnet rclone duti gnu-getopt
-          sqlite sqldiff smartmontools
+packages=(
+    autossh bash coreutils curl diffutils findutils
+    git grep jq moreutils findutils openssh wget
+    fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck
+    python rsync lsof p7zip 
+    ncdu telnet rclone duti gnu-getopt
+    sqlite sqldiff smartmontools
+    # too useful, but oy vey, the security implications!
+    node npm
 
-          # like inotifywait
-          fswatch
+    # like inotifywait
+    fswatch
 
-          # cool commands to learn about other commands
-          cheat tldr
+    # cool commands to learn about other commands
+    cheat tldr
 
-          # the screen with macOS sucks
-          screen
-          # procmail is for lockfile
-          procmail
-          # https://alt-tab-macos.netlify.app/
-          alt-tab
-          # mailx-like package
-          s-nail
-         )
+    # the screen with macOS sucks
+    screen
+    # procmail is for lockfile
+    procmail
+    # https://alt-tab-macos.netlify.app/
+    alt-tab
+    # mailx-like package
+    s-nail
+)
 
-if [[ $hostname =~ (max) ]]; then
+npm_packages=(
+    # https://github.com/sindresorhus/one-thing CLI for the One Thing app
+    one-thing
+)
+
+if [[ $host =~ (max) ]]; then
     # "imagemagick" and "exiftool" are photography tools used
     #   by various scripts
     # "basictex" is for the program "pdflatex" used by...
@@ -88,7 +94,7 @@ if [[ $hostname =~ (max) ]]; then
 fi
 
 ##### too big and I don't really use it much
-#if [[ $hostname =~ (max|mini18) ]]; then
+#if [[ $host =~ (max|mini18) ]]; then
 #    # ffmpeg with improved AAC codec
 #    packages_with_options+=("homebrew-ffmpeg/ffmpeg/ffmpeg --with-fdk-aac")
 #fi
@@ -114,12 +120,18 @@ if [ "$list" ]; then
     exit 0
 fi
 
-d "${manager[@]}" analytics off
-d "${manager[@]}" update
-d "${manager[@]}" upgrade
-d "${manager[@]}" install "${packages[@]}"
-for package_with_options in "${packages_with_options[@]}"; do
-    d "${manager[@]}" install $package_with_options
-done
-[ "$clean" ] && d "${manager[@]}" cleanup
-exit 0
+{
+    d "${manager[@]}" analytics off
+    d "${manager[@]}" update
+    d "${manager[@]}" upgrade
+
+    d "${manager[@]}" install "${packages[@]}"
+    for package_with_options in "${packages_with_options[@]}"; do
+        d "${manager[@]}" install $package_with_options
+    done
+
+    [ "${#npm_packages[@]}" -gt 0 ] && d npm install -g "${npm_packages[@]}"
+
+    [ "$clean" ] && d "${manager[@]}" cleanup
+    exit 0
+}
