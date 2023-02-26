@@ -72,6 +72,9 @@ packages=(
     alt-tab
     # mailx-like package
     s-nail
+
+    # Needed for SOC 2
+    clamav
 )
 
 npm_packages=(
