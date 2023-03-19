@@ -37,7 +37,6 @@ EOF
 
 debug=
 verbose=-q
-exclude=
 
 maxdelete=250
 baseargs=(-a --delete --delete-before --delete-excluded --exclude lost+found)
@@ -46,7 +45,7 @@ while [ $# -gt 0 ]; do
     case $1 in
         --debug) debug=$1 ;;
 	--exclude)
-	    exclude="$1 $2"
+            baseargs+=("--exclude" "$2")
 	    shift
 	    ;;
 	--max-delete)
@@ -78,7 +77,6 @@ function d {
     fi
 }
 
-[ "$exclude" ]   && baseargs+=("$exclude")
 [ "$maxdelete" ] && baseargs+=("--max-delete=${maxdelete}")
 
 sparse=
