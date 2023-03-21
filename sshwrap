@@ -132,10 +132,10 @@ if [ "$rebuild" ]; then
     echo "   configs: ${__sshwrap_config_files[@]}" 1>&2
     host=$(sed -e 's/\..*$//' <<< "$HOSTNAME")
     cat "${__sshwrap_config_files[@]}" | \
-        egrep -v '^\s*#' | \
+        grep -E -v '^\s*#' | \
         sed -e 's/^!/#/g' | \
         $cpp -undef "-D__host_$host" | \
-        egrep -v '^#' > "$p/config"
+        grep -E -v '^#' > "$p/config"
 
     rm -f "$lockfile"
 fi
