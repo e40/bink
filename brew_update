@@ -25,7 +25,9 @@ fi
     d "$brew" upgrade
     #d "$brew" upgrade --cask
     d "$brew" cleanup
-    d "$brew" doctor
+    if ! d "$brew" doctor; then
+        echo "Warning: doctor return a non-zero status"
+    fi
     set -x
     brew_symlinks --exec
     exit 0
