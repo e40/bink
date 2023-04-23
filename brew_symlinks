@@ -15,6 +15,8 @@ fi
 
 prefix=$($brew --prefix)
 
+realpath=$($brew --prefix coreutils)/bin/grealpath
+
 function usage {
     [ "${*-}" ] && echo "$prog: $*" 1>&2
     cat 1>&2 <<EOF
@@ -85,7 +87,7 @@ shopt -s nullglob
 {
     cd "$prefix"
 
-    x --exec "$brew" cleanup
+    x --exec "$brew" cleanup -v
 
     cd "${prefix}"
     read -a gnubins <<< "$(find . '(' -name bin -o -name gnubin ')' -print0 | xargs -0 echo)"
@@ -104,7 +106,9 @@ shopt -s nullglob
 	    if [ -e "${dst}/$base" ]; then
                 : # ignore
 	    elif [ ! -L "${dst}/$base" ]; then
-	        x ln -s "${prefix}/$f" "${dst}/$base"
+                # This is to make the symlinks relative
+                target=$($realpath -s -m --relative-to="${dst}/" "${prefix}/$f")
+	        x ln -s "${target}" "bin/$base"
 	    fi
         done
     done
