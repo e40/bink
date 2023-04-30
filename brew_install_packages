@@ -75,6 +75,9 @@ packages=(
 
     # Needed for SOC 2
     clamav
+
+    # for M-x ispell
+    ispell
 )
 
 npm_packages=(
