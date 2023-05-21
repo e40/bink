@@ -78,6 +78,10 @@ packages=(
 
     # for M-x ispell
     ispell
+
+    # `watch progress -q` is a nice way to watch the bandwidth used
+    # by `cp`.
+    progress watch
 )
 
 npm_packages=(
