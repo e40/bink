@@ -31,6 +31,12 @@ function errordie {
     exit 1
 }
 
+if [ "$(uname -s)" = "SunOS" ]; then
+    egrep=egrep
+else
+    egrep="grep -E"
+fi
+
 rc="$HOME/.sshwraprc"
 
 [ -f "$rc" ] || errordie "$rc does not exist"
@@ -132,10 +138,10 @@ if [ "$rebuild" ]; then
     echo "   configs: ${__sshwrap_config_files[@]}" 1>&2
     host=$(sed -e 's/\..*$//' <<< "$HOSTNAME")
     cat "${__sshwrap_config_files[@]}" | \
-        grep -E -v '^\s*#' | \
+        $egrep -v '^\s*#' | \
         sed -e 's/^!/#/g' | \
         $cpp -undef "-D__host_$host" | \
-        grep -E -v '^#' > "$p/config"
+        $egrep -v '^#' > "$p/config"
 
     rm -f "$lockfile"
 fi
