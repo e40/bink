@@ -13,7 +13,6 @@ Stackoverflow gets lots of thanks.
 | brew_symlinks   | install symlinks to shadow macOS commands of same name |
 | diffdirs        | diff two directories, but not their contents |
 | genuuid         | cheap UUID generation on Linux/macOS |
-| git.sh          | run git commands in directories specified by config |
 | gitstatus       | wrapper for git.sh using status |
 | gsync.sh        | script to sync git repos via github with onall |
 | knock           | knock but no more than needed |
