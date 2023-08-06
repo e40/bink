@@ -93,9 +93,9 @@ trap exit_cleanup EXIT
 	    ssh="ssh -A"
 	fi
 	if [ "$ignoreerrors" ]; then
-	    $ssh "${user}@$h" "$cd${QUOTE_ARGS}" || true >> "$tempfile"
+	    $ssh "${user}@$h" "$cd${QUOTE_ARGS}" || true &>> "$tempfile"
 	else
-	    $ssh "${user}@$h" "$cd${QUOTE_ARGS}" >> "$tempfile"
+	    $ssh "${user}@$h" "$cd${QUOTE_ARGS}" &>> "$tempfile"
 	fi
 
         if [ -s "$tempfile" ]; then
