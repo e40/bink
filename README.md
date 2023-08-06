@@ -13,7 +13,6 @@ Stackoverflow gets lots of thanks.
 | brew_symlinks   | install symlinks to shadow macOS commands of same name |
 | diffdirs        | diff two directories, but not their contents |
 | genuuid         | cheap UUID generation on Linux/macOS |
-| gitstatus       | wrapper for git.sh using status |
 | gsync.sh        | script to sync git repos via github with onall |
 | knock           | knock but no more than needed |
 | install_agent_wrapper.sh | SSH agent wrapper for Dock-started apps |
