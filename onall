@@ -86,6 +86,7 @@ trap exit_cleanup EXIT
 
 {
     for h in $hosts; do
+        failed=
         rm -f "$tempfile"
 	if [ "${SSH_IDENT-}" ]; then
 	    ssh="ssh -A -i .ssh/${SSH_IDENT}"
@@ -95,13 +96,17 @@ trap exit_cleanup EXIT
 	if [ "$ignoreerrors" ]; then
 	    $ssh "${user}@$h" "$cd${QUOTE_ARGS}" &>> "$tempfile" || true
 	else
-	    $ssh "${user}@$h" "$cd${QUOTE_ARGS}" &>> "$tempfile"
+            if $ssh "${user}@$h" "$cd${QUOTE_ARGS}" &>> "$tempfile"; then
+                :
+            else
+                failed=xxx
+            fi
 	fi
 
-        if [ -s "$tempfile" ]; then
+        if [ "$failed" ] || [ -s "$tempfile" ]; then
 	    echo ""
 	    echo "============= $h ========================================"
-            cat "$tempfile"
+            [ -s "$tempfile" ] && cat "$tempfile"
         fi
     done
 }
