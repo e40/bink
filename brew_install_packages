@@ -47,7 +47,6 @@ else # assume SSH works to admin@...
     manager=(ssh admin@$host ${brew})
 fi
 
-
 packages=(
     autossh bash coreutils curl diffutils findutils
     git grep jq moreutils findutils openssh wget
@@ -68,8 +67,7 @@ packages=(
     screen
     # procmail is for lockfile
     procmail
-    # https://alt-tab-macos.netlify.app/
-    alt-tab
+
     # mailx-like package
     s-nail
 
@@ -84,23 +82,39 @@ packages=(
     progress watch
 )
 
-npm_packages=(
-    # https://github.com/sindresorhus/one-thing CLI for the One Thing app
-    one-thing
-)
+pipx_packages=()
+
+npm_packages=()
 
 if [[ $host =~ (max) ]]; then
     # "imagemagick" and "exiftool" are photography tools used
     #   by various scripts
     # "basictex" is for the program "pdflatex" used by...
     # "pandoc" to convert markdown to PDF files
-    packages+=(imagemagick exiftool basictex pandoc
-               # https://tclementdev.com/timemachineeditor/
-               timemachineeditor
+    packages+=(
+        imagemagick exiftool basictex pandoc
+        # https://tclementdev.com/timemachineeditor/
+        timemachineeditor
 
-               # for Fujitsu ix500 scanner
-               homebrew/cask-drivers/fujitsu-scansnap-home
-              )
+        # for Fujitsu ix500 scanner
+        homebrew/cask/fujitsu-scansnap-home
+
+        # https://alt-tab-macos.netlify.app/
+        #### don't use this anymore
+        #alt-tab
+
+        # for osxphotos (see below)
+        pipx
+    )
+    npm_packages+=(
+        # https://github.com/sindresorhus/one-thing CLI for the One Thing app
+        one-thing
+    )
+
+    pipx_packages+=(
+        # https://rhettbull.github.io/osxphotos/
+        osxphotos
+    )
 fi
 
 ##### too big and I don't really use it much
@@ -141,6 +155,7 @@ fi
     done
 
     [ "${#npm_packages[@]}" -gt 0 ] && d npm install -g "${npm_packages[@]}"
+    [ "${#pipx_packages[@]}" -gt 0 ] && d pipx install "${pipx_packages[@]}"
 
     [ "$clean" ] && d "${manager[@]}" cleanup
     exit 0
