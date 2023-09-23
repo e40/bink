@@ -74,7 +74,7 @@ function x {
         if [ ! "$admin" ]; then # execute directly
             "$command" "$@"
         else # use the admin credentials
-            ssh -i "$HOME/.ssh/id_rsa_nopw" "$admin" "$command" "$@"
+            ssh -i "$HOME/.ssh/id_rsa_nopw" "$admin" "cd $PWD; $command" "$@"
         fi
     else
         echo "would: $command $*"
