@@ -50,7 +50,11 @@ fi
 packages=(
     autossh bash coreutils curl diffutils findutils
     git grep jq moreutils findutils openssh wget
-    fwknop gnu-sed gnu-tar perl xmlstarlet shellcheck
+
+    # for knocking:
+    fwknop 1password-cli
+
+    gnu-sed gnu-tar perl xmlstarlet shellcheck
     python rsync lsof p7zip 
     ncdu telnet rclone duti gnu-getopt
     sqlite sqldiff smartmontools
