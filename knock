@@ -22,14 +22,15 @@ knockroot=$HOME/.knock.d
 
 set -eu
 
-mkdir -p $knockroot
+mkdir -p "$knockroot"
 
 rc="$HOME/.knockrc"
+# shellcheck disable=SC1090
 [ -f "$rc" ] && source "$rc"
 
-: ${quiet:=}
+: "${quiet:=}"
 
-: ${verbose:=}
+: "${verbose:=}"
 function verbose {
     if [ "$verbose" ]; then
 	echo "$@"
@@ -102,7 +103,7 @@ done
 [ "$hostname" ] || usage hostname not given
 
 if [ "$(type -t knock_user_seconds)" = "function" ]; then
-    knock_period_seconds=$(knock_user_seconds $hostname)
+    knock_period_seconds=$(knock_user_seconds "$hostname")
 fi
 
 # The modification time of this directory is use to record when we knock
@@ -116,25 +117,19 @@ if [ "$(type -t knock_preknock_hook)" = "function" ]; then
     knock_preknock_hook
 fi
 
-if [ "$(uname -s)" = "Darwin" ]; then
-    macosx=xxx
-else
-    macosx=
-fi
-
-if ! mkdir $lockdir > /dev/null 2>&1; then
+if ! mkdir "$lockdir" > /dev/null 2>&1; then
     # Couldn't make it.  Make sure the lock isn't older than a
     # minute.
 
-    st_mtime=$($stat --format=%Y $lockdir)
-    since_modified=$(( $(now) - $st_mtime ))
+    st_mtime=$($stat --format=%Y "$lockdir")
+    since_modified=$(( $(now) - st_mtime ))
     if [ $since_modified -gt 60 ]; then
 	# this script shouldn't take more than a minute to run, so
 	# tell the caller we have a dead lock and remove it.
 	## for reasons I don't understand, Michelle often has dead locks
 	## hanging around.
 	echo "$lockdir held too long, removing..."
-	if ! rmdir $lockdir; then
+	if ! rmdir "$lockdir"; then
 	    echo Warning: rmdir failed
 	fi
     else
@@ -142,11 +137,12 @@ if ! mkdir $lockdir > /dev/null 2>&1; then
 	exit 0
     fi
 fi
+# shellcheck disable=SC2064
 trap "rmdir $lockdir" 0
 
-if [ -d $knockdir ]; then
-    st_mtime=$($stat --format=%Y $knockdir)
-    seconds_since_knock=$(( $(now) - $st_mtime ))
+if [ -d "$knockdir" ]; then
+    st_mtime=$($stat --format=%Y "$knockdir")
+    seconds_since_knock=$(( $(now) - st_mtime ))
     verbose seconds_since_knock=$seconds_since_knock
 else
     seconds_since_knock=
@@ -154,16 +150,16 @@ fi
 
 if [ -z "$seconds_since_knock" ]; then
     verbose initialize knockdir since it does not exist
-    mkdir $knockdir
+    mkdir "$knockdir"
 elif [ "$force" ]; then
     : # force the knock
-elif [ $seconds_since_knock -lt $knock_period_seconds ]; then
-    left=$(( $knock_period_seconds - $seconds_since_knock ))
+elif [ $seconds_since_knock -lt "$knock_period_seconds" ]; then
+    left=$(( knock_period_seconds - seconds_since_knock ))
     verbose "not time to knock yet ($left more seconds)"
     exit 0
 fi
 
-[ "$quiet" ] || echo $(date): time to knock for $hostname
+[ "$quiet" ] || echo "$(date): time to knock for $hostname"
 
 if [ "$(type -t knock_user_knock)" = "function" ]; then
     knock_user_knock "$hostname"
@@ -172,4 +168,4 @@ else
     fwknop -n "$hostname"
 fi
 
-touch $knockdir
+touch "$knockdir"
