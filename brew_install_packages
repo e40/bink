@@ -109,6 +109,9 @@ if [[ $host =~ (max) ]]; then
 
         # for osxphotos (see below)
         pipx
+
+        # ebook reader
+        calibre
     )
     npm_packages+=(
         # https://github.com/sindresorhus/one-thing CLI for the One Thing app
