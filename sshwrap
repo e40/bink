@@ -41,8 +41,10 @@ rc="$HOME/.sshwraprc"
 
 [ -f "$rc" ] || errordie "$rc does not exist"
 
+# shellcheck disable=SC1090
 source "$rc"
 
+# shellcheck disable=SC2154
 [ ${#__sshwrap_config_files[@]} -gt 0 ] ||
     errordie "__sshwrap_config_files not defined by $rc"
 
@@ -78,20 +80,14 @@ p="$HOME/.ssh"
 
 rebuild=
 if [ "${__sshwraprc_force_update-}" ]; then
-    #echo "DEBUG: __sshwraprc_force_update non null" 1>&2
-    rebuild=nonnull
+    rebuild="__sshwraprc_force_update non-null"
 elif [ ! -f "$p/config" ]; then
-    #echo "DEBUG: $p/config does not exist" 1>2
-    rebuild=nonnull
+    rebuild="config does not exist"
 else
     for config in "$rc" "${__sshwrap_config_files[@]}"; do
         if [ "$config" -nt "$p/config" ]; then
-            #echo "DEBUG: $config newer than $p/config" 1>&2
-            rebuild=nonnull
+            rebuild="$config newer than $p/config"
             break
-        else
-            #echo DEBUG: $config not newer than $p/config 1>&2
-            :
         fi
     done
 fi
@@ -115,7 +111,7 @@ if ! type -p lockfile &> /dev/null; then
 fi
 
 if [ "$rebuild" ]; then
-    echo Updating $p/config 1>&2
+    echo "Updating $p/config: reason: $rebuild" 1>&2
 
     if [ "$(uname -s)" = "SunOS" ]; then
 	cpp=/usr/lib/cpp
@@ -135,7 +131,8 @@ if [ "$rebuild" ]; then
         break
     done
 
-    echo "   configs: ${__sshwrap_config_files[@]}" 1>&2
+    echo "   configs: ${__sshwrap_config_files[*]}" 1>&2
+    # shellcheck disable=SC2001
     host=$(sed -e 's/\..*$//' <<< "$HOSTNAME")
     cat "${__sshwrap_config_files[@]}" | \
         $egrep -v '^\s*#' | \
