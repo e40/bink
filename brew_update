@@ -2,6 +2,8 @@
 
 set -eu
 
+SCRIPTDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
 host=$(hostname -s)
 function d {
     if id -Gn "$USER" | grep -q -w admin; then
@@ -29,6 +31,6 @@ fi
         echo "Warning: doctor return a non-zero status"
     fi
     set -x
-    brew_symlinks --exec
+    $SCRIPTDIR/brew_symlinks --exec
     exit 0
 }
