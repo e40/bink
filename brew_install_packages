@@ -52,7 +52,8 @@ packages=(
     git grep jq moreutils findutils openssh wget
 
     # for knocking:
-    fwknop 1password-cli
+    #fwknop ...... now installed from source code
+    1password-cli
 
     gnu-sed gnu-tar perl xmlstarlet shellcheck
     python rsync lsof p7zip 
@@ -84,6 +85,9 @@ packages=(
     # `watch progress -q` is a nice way to watch the bandwidth used
     # by `cp`.
     progress watch
+
+    # these are for building packages from source (e.g., fwknop)
+    autogen autoconf automake texinfo
 )
 
 pipx_packages=()
