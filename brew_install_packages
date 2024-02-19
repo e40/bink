@@ -95,21 +95,19 @@ pipx_packages=()
 npm_packages=()
 
 if [[ $host =~ (max) ]]; then
-    # "imagemagick" and "exiftool" are photography tools used
-    #   by various scripts
-    # "basictex" is for the program "pdflatex" used by...
-    # "pandoc" to convert markdown to PDF files
+
     packages+=(
-        imagemagick exiftool basictex pandoc
+        # photography tools used by various scripts
+        imagemagick exiftool
+
+        # used to convert org/markdown files to PDFs
+        mactex pandoc
+
         # https://tclementdev.com/timemachineeditor/
         timemachineeditor
 
         # for Fujitsu ix500 scanner
         homebrew/cask/fujitsu-scansnap-home
-
-        # https://alt-tab-macos.netlify.app/
-        #### don't use this anymore
-        #alt-tab
 
         # for osxphotos (see below)
         pipx
