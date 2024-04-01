@@ -33,6 +33,16 @@ fi
 eval set -- "$TEMP"
 
 debug=
+
+function d {
+    if [ "$debug" ]; then
+	echo "would: $*" 1>&2
+    else
+	echo "+ $*" 1>&2
+        "$@"
+    fi
+}
+
 file=
 
 while [ $# -gt 0 ]; do
@@ -55,15 +65,6 @@ done
 [ -f "$file" ] || errordie "$file" does not exist
 
 [ $# -eq 2 ] && echo "do this for the 2 arg case"
-
-function d {
-    if [ "$debug" ]; then
-	echo "would: $*" 1>&2
-    else
-	echo "+ $*" 1>&2
-        "$@"
-    fi
-}
 
 lockfile="/tmp/${prog}.lock"
 
