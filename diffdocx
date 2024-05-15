@@ -1,0 +1,86 @@
+#! /usr/bin/env bash
+
+set -ueE -o pipefail
+
+prog="$(basename "$0")"
+
+function usage {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    cat 1>&2 <<EOF
+Usage: $prog file1 file2
+Usage: $prog -r dir1 dir1
+
+Show the text differences in two Word files (.doc or .docx), or
+show the text differences in the WOrd files in two directories.
+EOF
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    exit 1
+}
+
+if ! type -p pandoc > /dev/null; then
+    errordie "pandoc is not installed"
+fi
+
+if ! type -p diff-pdf > /dev/null; then
+    errordie "diff-pdf is not installed"
+fi
+
+recurse=
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        -r) recurse=$1 ;;
+        --) usage "unknown argument: $1" ;;
+        *)  break
+	    ;;
+    esac
+    shift
+done
+
+[ $# -eq 2 ] || usage
+
+function mydiff {
+    diff <(pandoc --to org "$1") <(pandoc --to org "$2")
+}
+
+{
+    if [ "$recurse" ]; then
+        # both arguments must be directories
+        [ -d "$1" ] || usage "first argument not directory"
+        [ -d "$2" ] || usage "second argument not directory"
+        while IFS=$'\n' read -r line; do
+            if [[ $line =~ ^Files\ (.*)\ and\ (.*)\ differ$ ]]; then
+                left=${BASH_REMATCH[1]}
+                right=${BASH_REMATCH[1]}
+                #echo "ext=${left##*.}"
+                case ${left##*.} in
+                    doc|docx)
+                        echo "+ diff $left $right"
+                        mydiff "$left" "$right"
+                        ;;
+                    pdf)
+                        if diff-pdf "$left" "$right"; then
+                            echo "+ PDF UNCHANGED: $left $right"
+                        else
+                            echo "+ PDF DIFFERENT: $left $right"
+                        fi
+                        ;;
+                    *)  echo "NOTE: will not check $left and $right"
+                        ;;
+                esac
+            elif [[ $line =~ ^Only\ in ]]; then
+                # ignore
+                :
+            else
+                errordie "could not parse: $line"
+            fi
+        done <<< "$(diff -qr "$1" "$2")"
+    else
+        mydiff "$1" "$2"
+    fi
+    exit 0
+}
