@@ -30,6 +30,10 @@ if ! TEMP=$(getopt --shell bash -o f: -l debug,file: -n "$prog" -- "$@"); then
     exit 1
 fi
 
+if ! type -p foo > /dev/null; then
+    errordie "Cannot find foo, please install it before running $prog"
+fi
+
 eval set -- "$TEMP"
 
 debug=
