@@ -47,18 +47,20 @@ else # assume SSH works to admin@...
     manager=(ssh admin@$host ${brew})
 fi
 
+# You can see what you have installed via these commands:
+#   brew leaves --installed-on-request
+#   brew ls --casks
+
 packages=(
-    autossh bash coreutils curl diffutils findutils
-    git grep jq moreutils findutils openssh wget
+    autossh bash coreutils curl diffutils dos2unix duti findutils
+    findutils gcc git gnu-getopt gnu-sed gnu-tar grep jq lsof moreutils
+    ncdu openssh p7zip perl python rclone rsync shellcheck smartmontools
+    sqlite telnet wget xmlstarlet zlib
 
     # for knocking:
     #fwknop ...... now installed from source code
     1password-cli
 
-    gnu-sed gnu-tar perl xmlstarlet shellcheck
-    python rsync lsof p7zip 
-    ncdu telnet rclone duti gnu-getopt
-    sqlite sqldiff smartmontools
     # too useful, but oy vey, the security implications!
     node npm
 
@@ -70,6 +72,7 @@ packages=(
 
     # the screen with macOS sucks
     screen
+
     # procmail is for lockfile
     procmail
 
@@ -88,15 +91,33 @@ packages=(
 
     # these are for building packages from source (e.g., fwknop)
     autogen autoconf automake texinfo
+
+#####TODO:
+    # not sure these are needed
+    libev
+    openjdk
+
+##### can probably remove:
+    wakeonlan
 )
 
 pipx_packages=()
 
 npm_packages=()
 
+if [[ $host =~ (max|mini18) ]]; then
+    packages+=(
+        yt-dlp
+    )
+fi
+
 if [[ $host =~ (max) ]]; then
 
     packages+=(
+        # For offsite backup, but I use rclone not this package for it.
+        # It is handy for certain operations, though.
+        b2-tools
+
         # photography tools used by various scripts
         imagemagick exiftool
 
@@ -114,6 +135,26 @@ if [[ $host =~ (max) ]]; then
 
         # ebook reader
         calibre
+
+        # see below for install with options, but I don't really need that??
+        ffmpeg
+
+        # for emacs ready-player
+        ffmpegthumbnailer
+
+        # used by bink/diffdocx
+        diff-pdf
+
+        # for photos and tget
+        sqlite-utils
+        sqldiff
+
+        # useful for archiving iMessage data
+        imessage-exporter 
+
+        # OCaml package manager... `opam list --installed` to see what is
+        # there.  I don't remember installing any of that stuff.
+        opam
     )
     npm_packages+=(
         # https://github.com/sindresorhus/one-thing CLI for the One Thing app
