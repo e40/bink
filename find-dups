@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+# Find all files in the directories given as arguments which are the same,
+# according to md5sum.
+
+set -ueE -o pipefail
+
+{
+    find "$@" ! -empty -type f -exec md5sum {} + | sort | uniq -w32 -dD
+    exit 0
+}
