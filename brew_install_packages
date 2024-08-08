@@ -57,6 +57,9 @@ packages=(
     ncdu openssh p7zip perl python rclone rsync shellcheck smartmontools
     sqlite telnet wget xmlstarlet zlib
 
+    # file encryption
+    age
+
     # for knocking:
     #fwknop ...... now installed from source code
     1password-cli
