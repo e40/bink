@@ -54,8 +54,12 @@ fi
 packages=(
     autossh bash coreutils curl diffutils dos2unix duti findutils
     findutils gcc git gnu-getopt gnu-sed gnu-tar grep jq lsof moreutils
-    ncdu openssh p7zip perl python rclone rsync shellcheck smartmontools
+    ncdu openssh p7zip perl python rsync shellcheck smartmontools
     sqlite telnet wget xmlstarlet zlib
+
+    # Use native rclone from https://rclone.org/downloads/, it has more
+    # features.
+#   rclone
 
     # file encryption
     age
@@ -144,6 +148,9 @@ if [[ $host =~ (max) ]]; then
 
         # for emacs ready-player
         ffmpegthumbnailer
+
+        # used to chop up videos (e.g., Adrian's graduation video!)
+        losslesscut
 
         # used by bink/diffdocx
         diff-pdf
