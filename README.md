@@ -34,6 +34,7 @@ Stackoverflow gets lots of thanks.
 | turn-off-spotlight.sh          | turn off that Spotlight nonsense                                 |
 | vrsync                         | `rsync` a directory and keep versions of it                      |
 | wake-host                      | use `ether-wake` to wake a host                                  |
+| zipdir                         | zip a directory in various formats                               |
 
 For more detailed information on the scripts, see the source for the
 script.  I recommend that you not run the script without examining and
