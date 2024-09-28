@@ -75,10 +75,13 @@ lockfile="/tmp/${prog}.lock"
 # ensure that only one copy of this script is running at any given time
 lockfile -r 0 "$lockfile" || errordie program is already running
 
-tempfile="/tmp/${prog}temp$$"
+tempfile="/tmp/${prog}temp1$$"
+tempfile2="/tmp/${prog}temp2$$"
 rm -f "$tempfile"
 function exit_cleanup {
-    /bin/rm -f "$tempfile" "$lockfile"
+    rm -f "$tempfile"
+    rm -f "$tempfile2"
+    rm -f "$lockfile"
 }
 function err_report {
     echo "Error on line $(caller)" 1>&2
