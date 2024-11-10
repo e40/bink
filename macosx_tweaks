@@ -348,27 +348,6 @@ function exit_cleanup {
 }
 trap exit_cleanup EXIT
 
-# Blacklist iTunes.app from running
-# Santa installed from https://github.com/google/santa/releases
-if type -p santactl > /dev/null; then
-    for app in Music Books Mail Maps News Siri Stocks
-    do
-	path=/System/Applications/${app}.app/
-        if ! santactl fileinfo $path > $tempfile; then
-            blacklist=nonnull
-        elif ! grep -q -F Blocked $tempfile; then
-            blacklist=nonnull
-        else
-            echo Already blacklisted: $path
-            blacklist=
-        fi
-        if [ "$blacklist" ]; then
-	    echo santa blacklist $path
-	    sudo santactl rule --blacklist --path $path
-        fi
-    done
-fi
-
 # prevent auto-mounting of remote file systems in Finder by directing
 # these extensions to Safari
 if type -p duti > /dev/null; then
