@@ -78,6 +78,7 @@ lockfile -r 0 "$lockfile" || errordie program is already running
 tempfile="/tmp/${prog}temp1$$"
 tempfile2="/tmp/${prog}temp2$$"
 rm -f "$tempfile"
+rm -f "$tempfile2"
 function exit_cleanup {
     rm -f "$tempfile"
     rm -f "$tempfile2"
