@@ -27,7 +27,7 @@ function errordie {
     exit 1
 }
 
-type -p brew > /dev/null || errordie Homebrew is not installed
+brew=$(whence -p brew) > /dev/null || errordie Homebrew is not installed
 
 function d {
     echo "+ $*"
@@ -38,9 +38,8 @@ packages_with_options=()
 
 host=$(hostname -s)
 
-brew="brew"
 if id -Gn "$USER" | grep -q -w admin; then
-    manager=$brew
+    manager=($brew)
 elif [ -f "$HOME/.ssh/id_rsa_nopw" ]; then
     manager=(ssh -i $HOME/.ssh/id_rsa_nopw admin@$host ${brew})
 else # assume SSH works to admin@...
@@ -67,9 +66,6 @@ packages=(
     # for knocking:
     #fwknop ...... now installed from source code
     1password-cli
-
-    # too useful, but oy vey, the security implications!
-    node npm
 
     # like inotifywait
     fswatch
@@ -108,9 +104,11 @@ packages=(
     wakeonlan
 )
 
-pipx_packages=()
+taps=(
+    "emacs-plus:d12frosted/emacs-plus"
+)
 
-npm_packages=()
+pipx_packages=()
 
 if [[ $host =~ (max|mini18) ]]; then
     packages+=(
@@ -166,14 +164,10 @@ if [[ $host =~ (max) ]]; then
         # there.  I don't remember installing any of that stuff.
         opam
     )
-    npm_packages+=(
-        # https://github.com/sindresorhus/one-thing CLI for the One Thing app
-        one-thing
-    )
 
     pipx_packages+=(
         # https://rhettbull.github.io/osxphotos/
-        osxphotos
+        ###osxphotos
     )
 fi
 
@@ -207,6 +201,25 @@ fi
 {
     d "${manager[@]}" analytics off
     d "${manager[@]}" update
+
+    if [ "${#taps[@]}" -gt 0 ]; then
+        for tap in "${taps[@]}"; do
+            if [[ $tap =~ ^(.*):(.*)$ ]]; then
+                name="${match[1]}"
+                path="${match[2]}"
+            else
+                errordie "Could not parse tap: $tap"
+            fi
+            if ! d "${manager[@]}" list "$name"; then
+                echo "Tapping $name..."
+                d "${manager[@]}" tap "$path"
+                d "${manager[@]}" install "$name"
+            else
+                echo "Tap $name already installed."
+            fi
+        done
+    fi
+
     d "${manager[@]}" upgrade
 
     d "${manager[@]}" install "${packages[@]}"
@@ -214,7 +227,6 @@ fi
         d "${manager[@]}" install $package_with_options
     done
 
-    [ "${#npm_packages[@]}" -gt 0 ] && d npm install -g "${npm_packages[@]}"
     [ "${#pipx_packages[@]}" -gt 0 ] && d pipx install "${pipx_packages[@]}"
 
     [ "$clean" ] && d "${manager[@]}" cleanup
