@@ -12,7 +12,8 @@ Usage: $prog [-s subject] [-t addresses] command...
 
 The output of 'command' is mailed to:
  1. the given 'addresses', or
- 2. if it exists, the email address in \$HOME/.alert.email
+ 2. the value of \$ALERT_EMAIL from the environment
+ 3. if it exists, the contents of the file \$HOME/.alert.email
 
 If neither of the above conditions are met, then the output
 is sent to stdout.
@@ -30,13 +31,16 @@ function errordie {
     exit 1
 }
 
-alert=$HOME/.alert.email
+alertfile=$HOME/.alert.email
 
-if [ -f $alert ]; then
+if [ "${ALERT_EMAIL-}" ]; then
+    to=${ALERT_EMAIL}
+elif [ -f "$alertfile" ]; then
     to="$(cat $alert)"
 else
     to=
 fi
+
 subject=
 
 while [ $# -gt 0 ]; do
