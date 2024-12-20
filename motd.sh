@@ -1,4 +1,5 @@
 #! /usr/bin/env bash
+# shellcheck disable=SC1091,SC2129
 
 set -eu
 set -o pipefail
@@ -35,9 +36,9 @@ The contents of ~/.motd would something like this:
 
 Running $prog will print one of these lines, randomly chosen.
 
-If `top_sticky` and/or `bottom_sticky` are not the null array, then
-print `top_sticky` before the randomly chosen line above, and
-`bottom_sticky` after it.  They are constants for every run.
+If "top_sticky" and/or "bottom_sticky" are not the null array, then
+print "top_sticky" before the randomly chosen line above, and
+"bottom_sticky" after it.  They are constants for every run.
 EOF
     exit 1
 }
@@ -55,7 +56,7 @@ while [ $# -gt 0 ]; do
 	    shift
 	    subject=$1
 	    ;;
-        -*) usage unknown argument: $1 ;;
+        -*) usage "unknown argument: $1" ;;
         *)  break
 	    ;;
     esac
@@ -66,7 +67,7 @@ done
 
 address="${1-}"
 
-source $HOME/.motd
+source "$HOME/.motd"
 
 tempfile=/tmp/temp$$
 rm -f $tempfile
@@ -89,7 +90,7 @@ if [ ${#bottom_sticky[@]} -gt 0 ]; then
 fi
 
 if [ "$address" ]; then
-    cat $tempfile | Mail -s "$subject" $address
+    Mail -s "$subject" "$address" < "$tempfile"
 else
     cat $tempfile
 fi
