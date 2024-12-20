@@ -79,11 +79,13 @@ tempfile="/tmp/${prog}temp1$$"
 tempfile2="/tmp/${prog}temp2$$"
 rm -f "$tempfile"
 rm -f "$tempfile2"
+# shellcheck disable=SC2317
 function exit_cleanup {
     rm -f "$tempfile"
     rm -f "$tempfile2"
     rm -f "$lockfile"
 }
+# shellcheck disable=SC2317
 function err_report {
     echo "Error on line $(caller)" 1>&2
 }
