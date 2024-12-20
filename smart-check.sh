@@ -12,6 +12,16 @@ function errordie {
     exit 1
 }
 
+verbose=
+while [ $# -gt 0 ]; do
+    case $1 in
+        -v|--verbose) verbose=$1 ;;
+        --)           ;;
+        *)            usage "extra args: $*" ;;
+    esac
+    shift
+done
+
 tempfile="/tmp/${prog}temp1$$"
 rm -f "$tempfile"
 # shellcheck disable=SC2317
@@ -26,7 +36,11 @@ trap err_report   ERR
 trap exit_cleanup EXIT
 
 function notify {
-    echo "$*" | Mail -s "$0" "${ALERT_EMAIL}"
+    if [ "$verbose" ]; then
+        echo "$@"
+    else
+        echo "$*" | Mail -s "$0" "${ALERT_EMAIL}"
+    fi
 }
 
 {
@@ -43,8 +57,9 @@ function notify {
             disk=${BASH_REMATCH[1]}
             if $diskutil info "$disk" | grep -qE 'SMART Status:.*Not Supported'
             then
-                : #echo "$disk does not support SMART status"
+                [ "$verbose" ] && echo "$disk does not support SMART status"
             else
+                [ "$verbose" ] && echo "$disk supports SMART status"
                 disks+=("$disk")
             fi
         else
@@ -56,7 +71,7 @@ function notify {
 
     for disk in "${disks[@]}"; do
         if $diskutil info "$disk" | grep -qE 'SMART Status:.*Verified'; then
-            : #notify "NOTE: $(hostname -s): $disk is healthy"
+            [ "$verbose" ] && notify "NOTE: $(hostname -s): $disk is healthy"
         else
             notify "WARNING: $(hostname -s): $disk is NOT healthy"
         fi
