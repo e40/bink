@@ -82,6 +82,8 @@ function notify {
 
 # usage: value_sans_leading_zero number
 #   print NUMBER without the leading zero, if there is one
+#### unused, leave it for now
+# shellcheck disable=SC2317
 function value_sans_leading_zero {
     if [[ $1 =~ 0(.*) ]]; then
         echo "${BASH_REMATCH[1]}"
@@ -168,27 +170,23 @@ function ignore_disk {
                 then
                     errordie "could not get live temp data"
                 fi
-                value="$(awk '{print $4}' < "$tempfile2")"
-                worst="$(awk '{print $5}' < "$tempfile2")"
-                # according to the spec the values are decimal, not octal
-                # even though they have leading zeros.
-                value=$(value_sans_leading_zero "$value")
-                worst=$(value_sans_leading_zero "$worst")
+# For WD, the RAW_VALUE field has the data.  The VALUE field seems to be
+# nonsense.
+#
+# For Seagate, the RAW_VALUE field has the data, but also the VALUE field.
+# The VALUE field has a leading 0, so just use RAW_VALUE.
+                value="$(awk '{print $10}' < "$tempfile2")"
+                # We need to clean up the value, since there is
+                # company-specific info after the raw value.
+                if [[ $value =~ ^([0-9]+) ]]; then
+                    value=${BASH_REMATCH[1]}
+                fi
                 if [ "$value" -ge "$max" ]; then
                     ignore_disk "$disk" ||
                         notify "WARNING: current high temp: $value > $max"
                 else
                     [ "$verbose" ] &&
                         echo "   current temp OK: $value < $max"
-                fi
-                # need a way to turn this off, since once it happens
-                # it will be that way forever
-                if [ "$worst" -ge "$max" ]; then
-                    ignore_disk "$disk" ||
-                        notify "WARNING: worst high temp: $worst > $max"
-                else
-                    [ "$verbose" ] &&
-                        echo "   worst temp OK: $worst < $max"
                 fi
             done
         fi
