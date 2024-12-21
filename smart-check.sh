@@ -9,6 +9,12 @@ maxtemps=(
     # WD 24TB operating temp: 65C (149F!)
     # This is directly from the WD data sheet for the drive.
     "WDC WD240KFGX-68CJNN0:65"
+
+    # Seagate 10TB: operating temp: 70C!!
+    "ST10000VN0008-2JJ101:70"
+
+    # Seagate 24TB, operating temp: 65C!
+    "ST24000NT002-3N1101:65"
 )
 
 set -ueE -o pipefail
@@ -136,7 +142,7 @@ function value_sans_leading_zero {
                 fi
 
                 # get the live data
-                if ! smartctl -a disk8 | grep Temperature_Celsius > "$tempfile2"
+                if ! smartctl -a "$disk" | grep Temperature_Celsius > "$tempfile2"
                 then
                     errordie "could not get live temp data"
                 fi
