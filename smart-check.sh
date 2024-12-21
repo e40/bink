@@ -40,9 +40,16 @@ if [ ! "${ALERT_EMAIL-}" ]; then
 fi
 
 verbose=
+notemp_warnings=()
+
 while [ $# -gt 0 ]; do
     case $1 in
         -v|--verbose) verbose=$1 ;;
+        --ignore-temp)
+                      [ $# -lt 2 ] && errordie "$1: missing companion"
+                      shift
+                      notemp_warnings+=("$1")
+                      ;;
         --)           ;;
         *)            usage "extra args: $*" ;;
     esac
@@ -77,10 +84,25 @@ function notify {
 #   print NUMBER without the leading zero, if there is one
 function value_sans_leading_zero {
     if [[ $1 =~ 0(.*) ]]; then
-        echo ${BASH_REMATCH[1]}
+        echo "${BASH_REMATCH[1]}"
     else
-        echo $1
+        echo "$1"
     fi
+}
+
+# usage: ignore_disk disk
+#   return TRUE if DISK should be ignore due to known high temp warnings
+function ignore_disk {
+    local disk
+    if [ ${#notemp_warnings[@]} -gt 0 ]; then
+        for disk in "${notemp_warnings[@]}"; do
+            if [ "$disk" = "$1" ]; then
+                return 0
+            fi
+        done
+        return 1
+    fi
+    return 1
 }
 
 {
@@ -153,7 +175,8 @@ function value_sans_leading_zero {
                 value=$(value_sans_leading_zero "$value")
                 worst=$(value_sans_leading_zero "$worst")
                 if [ "$value" -ge "$max" ]; then
-                    notify "WARNING: current high temp: $value > $max"
+                    ignore_disk "$disk" ||
+                        notify "WARNING: current high temp: $value > $max"
                 else
                     [ "$verbose" ] &&
                         echo "   current temp OK: $value < $max"
@@ -161,7 +184,8 @@ function value_sans_leading_zero {
                 # need a way to turn this off, since once it happens
                 # it will be that way forever
                 if [ "$worst" -ge "$max" ]; then
-                    notify "WARNING: worst high temp: $worst > $max"
+                    ignore_disk "$disk" ||
+                        notify "WARNING: worst high temp: $worst > $max"
                 else
                     [ "$verbose" ] &&
                         echo "   worst temp OK: $worst < $max"
