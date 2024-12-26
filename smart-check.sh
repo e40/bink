@@ -39,7 +39,14 @@ if [ ! "${ALERT_EMAIL-}" ]; then
     errordie ALERT_EMAIL is not defined
 fi
 
-verbose=
+# On the first day of the month, be verbose, so we are reminded
+# that the cron job is still running and things are as they should
+# be.  Hopefully.
+if [ "$(date +%e)" = 1 ]; then
+    verbose=nonnull
+else
+    verbose=
+fi
 notemp_warnings=()
 
 while [ $# -gt 0 ]; do
