@@ -3,7 +3,7 @@
 # https://github.com/d12frosted/homebrew-emacs-plus
 # $ brew tap d12frosted/emacs-plus
 # $ brew install emacs-plus
-nohup "$(brew --prefix emacs-plus)/Emacs.app/Contents/MacOS/Emacs" --debug-init "$@" &> /dev/null &
+nohup "$(brew --prefix emacs-plus@30)/Emacs.app/Contents/MacOS/Emacs" --debug-init "$@" &> /dev/null &
 
 exit 0
 
