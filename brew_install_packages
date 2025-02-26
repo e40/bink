@@ -71,7 +71,8 @@ packages=(
     fswatch
 
     # cool commands to learn about other commands
-    cheat tldr
+    # "tldr" was deprecated
+    cheat
 
     # the screen with macOS sucks
     screen
