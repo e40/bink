@@ -5,6 +5,9 @@
 set -eu
 set -o pipefail
 
+### this was needed on macdev?
+export PATH=/usr/local/bin:$PATH
+
 prog="$(basename "$0")"
 
 function usage {
