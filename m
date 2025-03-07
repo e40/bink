@@ -36,7 +36,7 @@ alertfile=$HOME/.alert.email
 if [ "${ALERT_EMAIL-}" ]; then
     to=${ALERT_EMAIL}
 elif [ -f "$alertfile" ]; then
-    to="$(cat $alert)"
+    to="$(cat "$alertfile")"
 else
     to=
 fi
@@ -45,11 +45,11 @@ subject=
 
 while [ $# -gt 0 ]; do
     case $1 in
-        -s) [ $# -ge 2 ] || usage $1: missing companion argument 
+        -s) [ $# -ge 2 ] || usage "$1: missing companion argument "
             shift
             subject="$1"
             ;;
-        -t) [ $# -ge 2 ] || usage $1: missing companion argument 
+        -t) [ $# -ge 2 ] || usage "$1: missing companion argument "
             shift
             to="$1"
             ;;
@@ -63,16 +63,17 @@ tempfile=/tmp/temp$$
 
 command="$*"
 
+# shellcheck disable=SC2317
 function process_output {
     local s="${subject-$status: $command}"
-    if [ ! -s $tempfile ]; then
+    if [ ! -s "$tempfile" ]; then
 	: # don't do anything
     elif [ "$to" ]; then
-	Mail -s "$s" $to < $tempfile || true
+	Mail -s "$s" "$to" < "$tempfile" || true
     else
-	cat $tempfile
+	cat "$tempfile"
     fi
-    rm -f $tempfile
+    rm -f "$tempfile"
 }
 
 rm -f $tempfile
