@@ -97,7 +97,7 @@ packages=(
     progress watch
 
     # these are for building packages from source (e.g., fwknop)
-    autogen autoconf automake texinfo
+    make awk autogen autoconf automake texinfo
 
 #####TODO:
     # not sure these are needed
@@ -106,6 +106,9 @@ packages=(
 
 ##### can probably remove:
     wakeonlan
+
+##### testing
+    dockutil
 )
 
 taps=(
@@ -167,6 +170,8 @@ if [[ $host =~ (max) ]]; then
         # OCaml package manager... `opam list --installed` to see what is
         # there.  I don't remember installing any of that stuff.
         opam
+
+        sbcl
     )
 
     pipx_packages+=(
@@ -183,12 +188,14 @@ fi
 
 ###############################################################################
 
+check=
 clean=
 list=
 
 while [ $# -gt 0 ]; do
     case $1 in
         --help)  usage ;;
+        --check) check=$1 ;;
         --clean) clean=$1 ;;
         --list)  list=$1 ;;
         *)       break ;;
@@ -196,9 +203,30 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+function member {
+    local item=$1
+    shift
+
+    while test $# -gt 0; do
+	if [ "$item" = "$1" ]; then
+	    return 0
+	fi
+	shift
+    done
+
+    return 1
+}
+
 if [ "$list" ]; then
     for p in "${packages[@]}"; do echo $p; done
     for p in "${packages_with_options[@]}"; do echo $p; done
+    exit 0
+elif [ "$check" ]; then
+    for leaf in $(brew leaves); do
+        if ! member "$leaf" "${packages[@]}"; then
+            echo "$leaf"
+        fi
+    done
     exit 0
 fi
 
