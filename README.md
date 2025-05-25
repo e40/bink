@@ -10,6 +10,7 @@ Stackoverflow gets lots of thanks.
 | bash_debug                     | BASH debugging tools                                             |
 | bash_prompt                    | [a utilitarian BASH prompt](bash_prompt.md)                      |
 | bash_sshagent                  | [automatic SSH agent handling for BASH](bash_sshagent.md)        |
+| brew_file_to_formula           | print the formula which installed a file or files                |
 | brew_symlinks                  | install symlinks to shadow macOS commands of same name           |
 | diffdirs                       | diff two directories, but not their contents                     |
 | diffdocx                       | diff two Word files                                              |
