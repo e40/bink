@@ -57,7 +57,7 @@ packages=(
     autossh bash coreutils curl diffutils dos2unix duti findutils
     findutils gcc git gnu-getopt gnu-sed gnu-tar grep jq lsof moreutils
     ncdu openssh p7zip perl python rsync shellcheck smartmontools
-    sqlite telnet wget xmlstarlet zlib
+    sqlite telnet wget xmlstarlet zlib visual-studio-code the-unarchiver
 
     # Use native rclone from https://rclone.org/downloads/, it has more
     # features.
@@ -99,6 +99,11 @@ packages=(
     # these are for building packages from source (e.g., fwknop)
     make awk autogen autoconf automake texinfo
 
+    # video player
+    vlc
+    # audio editor
+    audacity
+
 #####TODO:
     # not sure these are needed
     libev
@@ -126,18 +131,17 @@ fi
 if [[ $host =~ (max) ]]; then
 
     packages+=(
-        # For offsite backup, but I use rclone not this package for it.
-        # It is handy for certain operations, though.
-        b2-tools
-
         # photography tools used by various scripts
         imagemagick exiftool
 
         # used to convert org/markdown files to PDFs
         mactex pandoc
 
+        ###### I PURCHASED BOTH OF THESE
         # https://tclementdev.com/timemachineeditor/
         timemachineeditor
+        # https://www.soma-zone.com/BackupLoupe/
+        backuploupe
 
         # for Fujitsu ix500 scanner
         homebrew/cask/fujitsu-scansnap-home
@@ -150,6 +154,7 @@ if [[ $host =~ (max) ]]; then
 
         # see below for install with options, but I don't really need that??
         ffmpeg
+        handbrake-app
 
         # for emacs ready-player
         ffmpegthumbnailer
@@ -171,7 +176,14 @@ if [[ $host =~ (max) ]]; then
         # there.  I don't remember installing any of that stuff.
         opam
 
+        # rival CL!!
         sbcl
+
+        # default browser so I can redirect URLs to specific browsers
+        finicky
+
+        # manipulate google calendar
+        gcalcli
     )
 
     pipx_packages+=(
