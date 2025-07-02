@@ -39,10 +39,21 @@ eval set -- "$TEMP"
 debug=
 
 function d {
+    local arg
     if [ "$debug" ]; then
-	echo "would: $*" 1>&2
+	echo -n "would: " 1>&2
     else
-	echo "+ $*" 1>&2
+	echo -n "+ " 1>&2
+    fi
+    for arg in "$@"; do
+        if [[ "$arg" =~ [[:space:]] ]]; then
+            printf '"%s" ' "$arg" 1>&2
+        else
+            printf '%s ' "$arg" 1>&2
+        fi
+    done
+    echo ""
+    if [ ! "$debug" ]; then
         "$@"
     fi
 }
