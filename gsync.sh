@@ -30,6 +30,10 @@ local=$(git remote get-url local)
 [[ $origin =~ github ]] || errordie origin remote is not to github
 
 {
+    # update/rebase on origin
+    d git pull -r
+
+    # update other remotes
     d git remote update
 
     # If the rebase fails, then the script will stop, so this is safe
