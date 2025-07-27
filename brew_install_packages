@@ -184,6 +184,14 @@ if [[ $host =~ (max) ]]; then
 
         # manipulate google calendar
         gcalcli
+
+        # testing this out, for markdown editing, etc
+        obsidian
+
+        # protection apps
+        knockknock
+        blockblock
+        reikey
     )
 
     pipx_packages+=(
