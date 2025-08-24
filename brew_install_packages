@@ -55,7 +55,7 @@ fi
 
 packages=(
     autossh bash coreutils curl diffutils dos2unix duti findutils
-    findutils gcc git gnu-getopt gnu-sed gnu-tar grep jq lsof moreutils
+    findutils gcc git gnu-getopt gnu-sed gnu-tar grep jq ijq lsof moreutils
     ncdu openssh p7zip perl python rsync shellcheck smartmontools
     sqlite telnet wget xmlstarlet zlib visual-studio-code the-unarchiver
 
