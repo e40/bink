@@ -54,7 +54,10 @@ fi
 #   brew ls --casks
 
 packages=(
-    autossh bash coreutils curl diffutils dos2unix duti findutils
+    # needed by mount_smb, which I don't really use anymore
+    #autossh
+
+    bash coreutils curl diffutils dos2unix duti findutils
     findutils gcc git gnu-getopt gnu-sed gnu-tar grep jq ijq lsof moreutils
     ncdu openssh p7zip perl python rsync shellcheck smartmontools
     sqlite telnet wget xmlstarlet zlib visual-studio-code the-unarchiver
