@@ -1,26 +1,28 @@
 #! /usr/bin/env bash
-# Wrapper for SSH the constructs ~/.ssh/config.
 #
-# To use this:
-#  - create ~/.sshwraprc
-#  - in $PATH before the real ssh link to this script with the name `ssh`
-#    and `scp`
+# This wrapper for SSH allows more flexible configuration.  Specifically:
+#  * building the SSH config file (~/.ssh/config) based on location
+#    (Yes, SSH version >= 7.3p1 has an Include directive, but some
+#     machines I use don't have that version, like CentOS 6 & SunOS.)
+#  * providing options based on the version of the client SSH
 #
-# Yes, SSH version >= 7.3p1 have the Include directive, but some machines
-# I use don't have that version.  Also, SunOS SSH doesn't have Include.
+# The main benefit, currently, is providing the option
+#   WarnWeakCrypto=no
+# for OpenSSH 10.1 and later, because for years I will use it to
+# older systems which cannot be updated.
 #
-# Include would make something like this possible:
-#
-#    Include ~/.ssh/config_head
-#    Include ~/.ssh/config_fi
-#
-#    # `Host' matches the TO host not the host we're initiating from.
-#    # The following includes the external config only when on my laptop.
-#    Match exec "test %L = gazorpazorp"
-#      Include ~/.ssh/config_external
-#
-#    Match exec "test %L != gazorpazorp"
-#      Include ~/.ssh/config_internal
+# If you want o use the "build config file" features, there are two
+# variables which are important:
+#   __sshwrap_config_files   :: the array of files which go into creating
+#       the main config file, ~/.ssh/config.  List them in order.
+#       If this variable is not defined, then no config processing
+#       happens.
+#   __sshwraprc_force_update :: normally the main config is rebuilt when
+#       needed, but this can be set to force a rebuild if, for example,
+#       you detect that your IP is now in a different location.
+# Next, you need to create  ~/.sshwraprc (see sshwraprc.example).
+# Lastly, in some directory in your $PATH, before the real `ssh` appears,
+# link to this script with the name `ssh` and `scp`.
 
 set -ueE -o pipefail
 
@@ -38,15 +40,10 @@ else
 fi
 
 rc="$HOME/.sshwraprc"
-
-[ -f "$rc" ] || errordie "$rc does not exist"
-
-# shellcheck disable=SC1090
-source "$rc"
-
-# shellcheck disable=SC2154
-[ ${#__sshwrap_config_files[@]} -gt 0 ] ||
-    errordie "__sshwrap_config_files not defined by $rc"
+if [ -f "$rc" ]; then
+    # shellcheck disable=SC1090
+    source "$rc"
+fi
 
 function executable_p {
     if [ -x "$1" ]; then
@@ -78,12 +75,18 @@ fi
 
 p="$HOME/.ssh"
 
+ignore=
 rebuild=
-if [ "${__sshwraprc_force_update-}" ]; then
+# shellcheck disable=SC2154
+if ! declare -p __sshwrap_config_files &> /dev/null; then
+    # Not defined, so don't do any config processing
+    ignore=yes
+elif [ "${__sshwraprc_force_update-}" ]; then
     rebuild="__sshwraprc_force_update non-null"
 elif [ ! -f "$p/config" ]; then
     rebuild="config does not exist"
 else
+    # shellcheck disable=SC2154
     for config in "$rc" "${__sshwrap_config_files[@]}"; do
         if [ "$config" -nt "$p/config" ]; then
             rebuild="$config newer than $p/config"
@@ -110,7 +113,7 @@ if ! type -p lockfile &> /dev/null; then
     }
 fi
 
-if [ "$rebuild" ]; then
+if [ ! "$ignore" ] && [ "$rebuild" ]; then
     echo "Updating $p/config: reason: $rebuild" 1>&2
 
     if [ "$(uname -s)" = "SunOS" ]; then
@@ -143,12 +146,24 @@ if [ "$rebuild" ]; then
     rm -f "$lockfile"
 fi
 
-# new BASH versions set HOSTNAME, it turns out
-if [[ $HOSTNAME =~ (tenner|teller|relay) ]]; then
-    # SSH too old there
-    addkeys=
+if [[ $($realsxx -V 2>&1) =~ OpenSSH_([0-9]+)\.([0-9]+) ]]; then
+    ssh_major_version=${BASH_REMATCH[1]}
+    ssh_minor_version=${BASH_REMATCH[2]}
 else
-    addkeys="-o AddKeysToAgent=yes"
+    # could not determine, default to "old" (e.g., 1.0 in this case)
+    ssh_major_version=1
+    ssh_minor_version=0
 fi
 
-exec $realsxx $addkeys "$@"
+options="-o AddKeysToAgent=yes"
+
+if (( ssh_major_version < 10 ||
+      ( ssh_major_version = 10 && ssh_minor_version < 1 ) ))
+then
+    : # doesn't have it
+else
+    options="$options -o WarnWeakCrypto=no"
+fi
+
+# shellcheck disable=SC2086
+exec $realsxx $options "$@"

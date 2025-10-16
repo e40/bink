@@ -1,0 +1,61 @@
+#! /bin/bash
+# This script defines these variable:
+#   __sshwrap_config_files
+#   __sshwraprc_force_update
+#
+# NOTE: this file is source'd so use return not exit to terminate
+#       processing.
+
+# Because we don't want the calculations here to happen for every
+# ssh/scp invocation, we cache the result and use that if it exists
+# and we're not on my laptop.
+
+__sshwraprc_cache_config="$HOME/.sshwraprc.cached_config"
+__sshwraprc_cache_myip="$HOME/.sshwraprc.cached_ip"
+__sshwraprc_cache_extip="$HOME/.sshwraprc.cached_extip"
+
+# if non-null then force an update to ~/.ssh/config
+__sshwraprc_force_update=
+
+myip=$(nslookup relay.known.net dns1.registrar-servers.com) ||
+    errordie nslookup failed
+
+if [[ $myip =~ Address:\ ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) ]]; then
+    myip="${BASH_REMATCH[1]}"
+else
+    errordie "could not parse: $myip"
+fi
+
+if [ ! "$myip" ] || 
+   [ ! -f "${__sshwraprc_cache_myip}" ] ||
+   [ "$myip" != "$(cat "${__sshwraprc_cache_myip}")" ]
+then
+    echo "[1]IP CHANGED! old: $(cat "${__sshwraprc_cache_myip}")" 1>&2
+    # either the first time through this code OR
+    # laptop moved from one zone to another
+    echo "$myip" > "${__sshwraprc_cache_myip}"
+    __sshwraprc_force_update=nonnull
+fi
+
+extip=$(my-external-ip)
+
+if [ ! -f "${__sshwraprc_cache_extip}" ] ||
+   [ "$extip" != "$(cat "${__sshwraprc_cache_extip}")" ]
+then
+    echo "[2]ext IP: $(cat "${__sshwraprc_cache_extip}") to $extip" 1>&2
+    # our external IP changed, so force update
+    echo "$extip" > "${__sshwraprc_cache_extip}"
+    __sshwraprc_force_update=nonnull
+fi
+
+__sshwrap_config_files=( "$HOME/.ssh/config_top" )
+
+if [ "$myip" = "$extip" ]; then
+    __sshwrap_config_files+=( "$HOME/.ssh/config_int" )
+else
+    __sshwrap_config_files+=( "$HOME/.ssh/config_ext" )
+fi
+
+cat <<EOF > "${__sshwraprc_cache_config}"
+__sshwrap_config_files=( ${__sshwrap_config_files[@]} )
+EOF
