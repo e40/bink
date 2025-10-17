@@ -146,7 +146,12 @@ if [ ! "$ignore" ] && [ "$rebuild" ]; then
     rm -f "$lockfile"
 fi
 
-if [[ $($realsxx -V 2>&1) =~ OpenSSH_([0-9]+)\.([0-9]+) ]]; then
+# "scp -V" doesn't work, so need to do this with the actual ssh binary
+BASE=${realsxx##*/}
+DIR=${realsxx%"$BASE"}
+realssh=${DIR}/ssh
+
+if [[ $($realssh -V 2>&1) =~ OpenSSH_([0-9]+)\.([0-9]+) ]]; then
     ssh_major_version=${BASH_REMATCH[1]}
     ssh_minor_version=${BASH_REMATCH[2]}
 else
@@ -165,5 +170,9 @@ else
     options="$options -o WarnWeakCrypto=no"
 fi
 
-# shellcheck disable=SC2086
-exec $realsxx $options "$@"
+{
+    # shellcheck disable=SC2086
+    exec $realsxx $options "$@"
+
+    exit 0
+}
