@@ -117,6 +117,9 @@ packages=(
 
 ##### testing
     dockutil
+
+    # USB thumb driver creator
+    balenaetcher
 )
 
 taps=(
