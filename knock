@@ -20,7 +20,9 @@ knockroot=$HOME/.knock.d
 
 ###############################################################################
 
-set -eu
+set -ueE -o pipefail
+
+prog="$(basename "$0")"
 
 mkdir -p "$knockroot"
 
@@ -43,15 +45,15 @@ function now {
 
 function usage {
     cat 1>&2 <<EOF
-Usage: knock [-q] [-v] [-f] hostname
+Usage: $prog [-q] [-v] [-f] hostname
 
 -v :: be verbose
 -q :: be quiet
 -f :: force knock regardless of how long it's been since fwknop was called
 
 Knock, with fwknop, on "hostname", where "hostname" is the name
-of a stanza in \$HOME/.fwknoprc.  The difference is that we do not 
-knock more than once each $knock_period_seconds seconds.
+of a name of the stanza in \$HOME/.fwknoprc.  The difference is that we
+do not knock more than once each $knock_period_seconds seconds.
 
 "knock" creates and uses $knockroot.
 
@@ -62,7 +64,12 @@ knock_preknock_hook :: a function called before pretty much anything is done
 
 knock_user_knock :: called in place of fwknop -- can be useful if you
   want to tweak the arguments to fwknop.  It is given a single argument,
-  \$hostname.
+  the host being knocked upon.
+
+  The main use of this user-defined BASH function is to implement automatic
+  password retrieval from 1Password.  See
+  https://readme.franz.com/sa/security/ssh.md#advanced-automatic-port-knocking
+  for more information about how to set up automatic knocking.
 EOF
     exit 1
 }
@@ -71,6 +78,10 @@ function errordie {
     echo "Error: $*" 1>&2
     exit 1
 }
+
+if ! type -p fwknop > /dev/null; then
+    errordie "Cannot find fwknop, please install it before running $prog"
+fi
 
 if [ "$(uname -s)" = "Darwin" ]; then
     if stat=$(type -p gstat); then
