@@ -120,6 +120,9 @@ packages=(
 
     # USB thumb driver creator
     balenaetcher
+
+    # requires the emacs-plus tap below
+    emacs-plus-app
 )
 
 taps=(

@@ -1,17 +1,6 @@
 #! /usr/bin/env bash
 
-# shellcheck disable=SC2207
-version=($(brew list --version | grep emacs-plus))
-
-prefix=$(brew --prefix "${version[0]}")
-
 # https://github.com/d12frosted/homebrew-emacs-plus
 # $ brew tap d12frosted/emacs-plus
-# $ brew install emacs-plus
-nohup "$prefix/Emacs.app/Contents/MacOS/Emacs" --debug-init "$@" &> /dev/null &
-
-##################### emacsformacosx.com's version:
-## On macOS 15 and Emacs 29.4, this became really, really sluggish and it
-## was too annoying to use.  I used this version for so long.
-## RIP emacsformacosx.com  :(
-#nohup /Applications/Emacs.app/Contents/MacOS/Emacs --debug-init "$@" &> /dev/null &
+# $ brew install emacs-plus-app
+nohup "/Applications/Emacs.app/Contents/MacOS/Emacs" --debug-init "$@" &> /dev/null &
