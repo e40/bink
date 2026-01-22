@@ -140,6 +140,9 @@ d "Set menubar date format" \
 
 ############## Finder...
 
+d "Turn off click-to-show Desktop" \
+  com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
+
 d "Use list view in all Finder windows" \
   com.apple.finder FXPreferredViewStyle Nlsv
 
