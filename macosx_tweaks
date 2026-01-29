@@ -98,8 +98,6 @@ function d {
 d "Suppress Apple Photos from start on hotplug of cameras" \
   com.apple.ImageCapture disableHotPlug -bool true
 
-d "Suppress xterm when X11 starts" org.x.X11 app_to_run $(which true)
-
 d "Always show tab bar in Terminal" com.Apple.Terminal ShowTabBar 1
 
 d "Setting screenshot location to $HOME/Downloads" \
@@ -142,6 +140,16 @@ d "Set menubar date format" \
 
 d "Turn off click-to-show Desktop" \
   com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
+
+d "Show recent apps in Stage manager" \
+  com.apple.WindowManager AutoHide -bool true
+
+d "Drag windows to left/right edge" \
+  com.apple.WindowManager EnableTilingByEdgeDrag -bool false
+d "Drag windows to menu bar to fill screen" \
+  com.apple.WindowManager EnableTilingByMenuDrag -bool false
+d "Hold option key while dragging window to tile" \
+  com.apple.WindowManager EnableTilingByOptionDrag -bool false
 
 d "Use list view in all Finder windows" \
   com.apple.finder FXPreferredViewStyle Nlsv
@@ -235,6 +243,9 @@ d "Sort Activity Monitor direction" \
 d "Minimize windows into their app icon" \
   com.apple.dock minimize-to-application -bool true
 
+d "Dock on left" \
+  com.apple.dock orientation -string left
+
 d "Show indicator lights for open applications in the Dock" \
   com.apple.dock show-process-indicators -bool true
 
@@ -245,6 +256,12 @@ d "Lower-left hot corner: sleep display" \
   com.apple.dock wvous-bl-corner -int 10
 d "Lower-left hot corner: sleep display, part 2" \
   com.apple.dock wvous-bl-modifier -int 0
+
+d "Minimized window animation: Scale effect" \
+  com.apple.dock mineffect -string scale
+
+d "Show suggested and recent apps: off" \
+  com.apple.dock show-recents -bool false
 
 d "Prevent TM from prompting to use new drives as backup volumes" \
   com.apple.TimeMachine DoNotOfferNewDisksForBackup -bool true
@@ -275,6 +292,9 @@ d "Disable smart dashes" \
 d "Disable App Nap" \
   NSGlobalDomain NSAppSleepDisabled -bool true
 
+d "Natural scrolling: OFF" \
+  NSGlobalDomain com.apple.swipescrolldirection -bool false
+
 d "Enable the debug menu in Disk Utility" \
   com.apple.DiskUtility DUDebugMenuEnabled -bool true
 d "Enable the advanced image options in Disk Utility" \
@@ -290,10 +310,16 @@ d "Chrome: Use the system-native print preview dialog" \
 # System Preferences.  Man, that was annoying!!
 #defaults delete com.apple.systempreferences AttentionPrefBundleIDs || true
 
+# This adds my "FinderLinks" to the Dock
+defaults write com.apple.dock persistent-others -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>file:///Users/layer/Stacks/FinderLinks/</string><key>_CFURLStringType</key><integer>15</integer></dict><key>displayas</key><integer>1</integer><key>showas</key><integer>3</integer></dict><key>tile-type</key><string>directory-tile</string></dict>"
+
 [ "$restart_finder" ] && killall Finder
 [ "$restart_systemuiserver" ] && 
     echo "starting system UI server" &&
     killall -KILL SystemUIServer
+
+killall Dock
+killall WindowManager
 
 ###############################################################################
 

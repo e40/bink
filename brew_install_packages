@@ -60,7 +60,7 @@ packages=(
     bash coreutils curl diffutils dos2unix duti findutils
     findutils gcc git gnu-getopt gnu-sed gnu-tar grep jq ijq lsof moreutils
     ncdu openssh p7zip perl python rsync shellcheck smartmontools
-    sqlite telnet wget xmlstarlet zlib visual-studio-code the-unarchiver
+    sqlite telnet wget xmlstarlet zlib the-unarchiver
 
     # Use native rclone from https://rclone.org/downloads/, it has more
     # features.
@@ -70,7 +70,7 @@ packages=(
     age
 
     # for knocking:
-    #fwknop ...... now installed from source code
+    fwknop
     1password-cli
 
     # like inotifywait
@@ -101,11 +101,6 @@ packages=(
 
     # these are for building packages from source (e.g., fwknop)
     make awk autogen autoconf automake texinfo
-
-    # video player
-    vlc
-    # audio editor
-    audacity
 
 #####TODO:
     # not sure these are needed
@@ -142,6 +137,9 @@ if [[ $host =~ (max) ]]; then
     packages+=(
         # photography tools used by various scripts
         imagemagick exiftool
+
+        # audio editor
+        audacity
 
         # used to convert org/markdown files to PDFs
         mactex pandoc
