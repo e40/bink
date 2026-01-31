@@ -9,7 +9,7 @@ prog="$(basename "$0")"
 function usage {
     [ "${*-}" ] && echo "$prog: $*" 1>&2
     cat 1>&2 <<EOF
-Usage: $prog
+Usage: $prog [-v]
 
 Check that \$HOME/.crontab.${host} and "crontab -l" are the same, and
 exit with a zero status if they are.  Otherwise, print the difference
@@ -23,8 +23,11 @@ function errordie {
     exit 1
 }
 
+verbose=
+
 while [ $# -gt 0 ]; do
     case $1 in
+        -v) verbose=$1 ;;
         *)  usage extra args: "$@" ;;
     esac
     shift
@@ -61,5 +64,6 @@ trap exit_cleanup EXIT
         errordie "crontab in use and the file are not the same"
     fi
 
+    [ "$verbose" ] && echo Crontabs are the same
     exit 0
 }
