@@ -60,7 +60,7 @@ packages=(
     bash coreutils curl diffutils dos2unix duti findutils
     findutils gcc git gnu-getopt gnu-sed gnu-tar grep jq ijq lsof moreutils
     ncdu openssh p7zip perl python rsync shellcheck smartmontools
-    sqlite telnet wget xmlstarlet zlib the-unarchiver
+    sqlite telnet wget xmlstarlet zlib the-unarchiver gnu-units
 
     # Use native rclone from https://rclone.org/downloads/, it has more
     # features.
