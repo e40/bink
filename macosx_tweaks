@@ -31,6 +31,9 @@ function errordie {
 # RDP mode
 rdp=unset
 
+rdparg=
+localarg=
+
 while [ $# -gt 0 ]; do
     case $1 in
         --rdp)   rdp=$1; rdparg=$1   ;;
@@ -77,25 +80,23 @@ function d {
     local value
     local changed
 
-    echo -n "${description}: "
-
     # $* is the value, which can be a single value or a pair:
     #   -string string_value
     #   -bool[ean] (true | false | yes | no)
     #   -int[eger] <integer_value>
     # we punt on all others
 
-    if current=$(defaults read "$domain" "$key" 2>/dev/null); then
+    if current=$(defaults $currenthost read "$domain" "$key" 2>/dev/null); then
 	# value for key exists, see if it's the same as what we want
 	# it to be
 	if [ $# -eq 1 ]; then
 	    # simple case of a single value
 	    if [ "$current" = "$1" ]; then
-                echo "already set"
+                :
 	    else
 		old=$current
 		defaults $currenthost write "$domain" "$key" "$@"
-		echo "$old => $*"
+                echo "${description}: $old => $*"
 		changed=yes
 	    fi
 	else
@@ -112,12 +113,12 @@ function d {
 		*)  errordie $1 is unrecognized value ;;
 	    esac
 	    if [ "$current" = "$value" ]; then
-                echo "already set"
+                :
 	    else
 		old=$current
 		echo $description
 		defaults $currenthost write "$domain" "$key" "$@"
-		echo "$old => $*"
+		echo "${description}: $old => $*"
 		changed=yes
 	    fi
 	fi
@@ -125,7 +126,7 @@ function d {
 	# didn't exist, write it
 	echo $description
 	defaults $currenthost write "$domain" "$key" "$@"
-	echo "NEW: $*"
+	echo "${description}: NEW: $*"
 	changed=yes
     fi
     
@@ -171,7 +172,7 @@ if [ "$rdp" ]; then
       com.apple.screensaver askForPassword -int 0
 
     d "Turn off idleTime" \
-      -currentHost com.apple.screensaver idleTime 0
+      -currentHost com.apple.screensaver idleTime -int 0
 else
     d "Ask for password when wake from sleep/screensaver" \
       com.apple.screensaver askForPassword -int 1
