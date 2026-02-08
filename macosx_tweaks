@@ -6,7 +6,45 @@
 # recent ideas from:
 # https://raw.githubusercontent.com/mathiasbynens/dotfiles/master/.macos
 
-set -eu
+set -ueE -o pipefail
+
+prog="$(basename "$0")"
+
+function usage {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    cat 1>&2 <<EOF
+Usage: $prog { --rdp | --local }
+
+Install macOS configuration changes.  There are two modes:
+
+ --rdp   :: system accessed primarily via Apple Remote Desktop
+ --local :: system accessed primarily via console
+EOF
+    exit 1
+}
+
+function errordie {
+    [ "${*-}" ] && echo "$prog: $*" 1>&2
+    exit 1
+}
+
+# RDP mode
+rdp=unset
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --rdp)   rdp=$1; rdparg=$1   ;;
+        --local) rdp=  ; localarg=$1 ;;
+        --)      ;;
+        *)       usage extra args: "$@" ;;
+    esac
+    shift
+done
+
+[ "$rdparg$localarg" ] ||
+    usage "one of --local or --rdp must be given"
+
+###############################################################################
 
 # Close any open System Preferences panes, to prevent them from overriding
 # settings we’re about to change
@@ -15,18 +53,22 @@ osascript -e 'tell application "System Preferences" to quit'
 # Ask for the administrator password upfront
 sudo -v
 
-function errordie {
-    echo "Error: $*" 1>&2
-    exit 1
-}
-
 restart_finder=
 restart_systemuiserver=
 
+# usage: d docstring key values...
+#
 # Like "defaults write ..." but prints first arg to STDOUT if a
 # change is made, nothing otherwise.
 function d {
+    local currenthost
     local description="$1"; shift
+
+    if [ "$1" == "-currentHost" ]; then
+        currenthost=$1; shift
+    else
+        currenthost=
+    fi
     local domain="$1";      shift
     local key="$1";         shift
 
@@ -34,6 +76,8 @@ function d {
     local old
     local value
     local changed
+
+    echo -n "${description}: "
 
     # $* is the value, which can be a single value or a pair:
     #   -string string_value
@@ -47,12 +91,11 @@ function d {
 	if [ $# -eq 1 ]; then
 	    # simple case of a single value
 	    if [ "$current" = "$1" ]; then
-		: # Nothing to do
+                echo "already set"
 	    else
 		old=$current
-		echo $description
-		defaults write "$domain" "$key" "$@"
-		echo "   ****** old value was: $old"
+		defaults $currenthost write "$domain" "$key" "$@"
+		echo "$old => $*"
 		changed=yes
 	    fi
 	else
@@ -69,20 +112,20 @@ function d {
 		*)  errordie $1 is unrecognized value ;;
 	    esac
 	    if [ "$current" = "$value" ]; then
-		: # Nothing to do
+                echo "already set"
 	    else
 		old=$current
 		echo $description
-		defaults write "$domain" "$key" "$@"
-		echo "   ****** old value was: $old"
+		defaults $currenthost write "$domain" "$key" "$@"
+		echo "$old => $*"
 		changed=yes
 	    fi
 	fi
     else
 	# didn't exist, write it
 	echo $description
-	defaults write "$domain" "$key" "$@"
-	echo "   NEW SETTING"
+	defaults $currenthost write "$domain" "$key" "$@"
+	echo "NEW: $*"
 	changed=yes
     fi
     
@@ -123,8 +166,16 @@ defaults write -g NSWindowShouldDragOnGesture -bool true
 d "Automatically quit printer app once the print jobs complete" \
   com.apple.print.PrintingPrefs "Quit When Finished" -bool true
 
-d "Ask for password when wake from sleep/screensaver" \
-  com.apple.screensaver askForPassword -int 1
+if [ "$rdp" ]; then
+    d "Do NOT ask for password when wake from sleep/screensaver" \
+      com.apple.screensaver askForPassword -int 0
+
+    d "Turn off idleTime" \
+      -currentHost com.apple.screensaver idleTime 0
+else
+    d "Ask for password when wake from sleep/screensaver" \
+      com.apple.screensaver askForPassword -int 1
+fi
 
 d "Password delay to 6 seconds" \
   com.apple.screensaver askForPasswordDelay -int 60
@@ -438,6 +489,11 @@ elif [ "$model" == "MacPro" ]; then
     xpmset "Set disk sleep to 10 minutes" -a disksleep 10
     xpmset "Set autorestart to off" -a autorestart 0
     xpmset "DO NOT wake on magic packet" -a womp 0
+fi
+
+if [ "$rdp" ]; then
+    xpmset "Disable computer sleep" -a sleep 0
+    xpmset "Set display sleep to 0 minutes" -a displaysleep 0
 fi
 
 function ethernet_device_name {
