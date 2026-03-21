@@ -34,6 +34,13 @@ so they might be added to it.
 
 Options:
 --clean   :: clean up after installation
+
+Consider using these commands to gain more insight into installed packages:
+
+  \$ brew deps --tree --installed
+
+  \$ brew uses --installed protobuf
+
 EOF
     exit 1
 }
