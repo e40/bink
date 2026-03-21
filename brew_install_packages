@@ -15,9 +15,22 @@ function usage {
     cat 1>&2 <<EOF
 Usage: $prog [--clean]
 Usage: $prog --list
+Usage: $prog --dry-run
+Usage: $prog --orphans
+Usage: $prog --oob
 
-Install Homebrew packages.  To list packages 
-use --list.
+Install Homebrew packages.
+
+--list is used to list the would-be-installed packages.
+
+--dry-run is used to see what would actually be installed, given
+the already-installed packages on the current system.
+
+--orphans is used to find packages installed for a dependency but their
+original package was removed.
+
+--oob is used to see what packages were installed outside of this script,
+so they might be added to it.
 
 Options:
 --clean   :: clean up after installation
@@ -59,8 +72,9 @@ packages=(
 
     bash coreutils curl diffutils dos2unix duti findutils
     findutils gcc git gnu-getopt gnu-sed gnu-tar grep jq ijq lsof moreutils
-    ncdu openssh p7zip perl python rsync shellcheck smartmontools
+    ncdu openssh p7zip lzip perl python rsync shellcheck smartmontools
     sqlite telnet wget xmlstarlet zlib the-unarchiver gnu-units
+    pkgconf openssl@3
 
     # Use native rclone from https://rclone.org/downloads/, it has more
     # features.
@@ -102,6 +116,9 @@ packages=(
     # these are for building packages from source (e.g., fwknop)
     make awk autogen autoconf automake texinfo
 
+    # different than 'awk'
+    gawk
+
 #####TODO:
     # not sure these are needed
     libev
@@ -114,27 +131,30 @@ packages=(
     dockutil
 
     # USB thumb driver creator
-    balenaetcher
+    #balenaetcher
 
     # requires the emacs-plus tap below
-    emacs-plus-app
+    #emacs-plus-app
 )
 
 taps=(
-    "emacs-plus:d12frosted/emacs-plus"
+    #"emacs-plus:d12frosted/emacs-plus"
 )
 
 pipx_packages=()
 
-if [[ $host =~ (max|mini18) ]]; then
+if [[ $host =~ ^(max|mini18|mini24) ]]; then
     packages+=(
         yt-dlp
     )
 fi
 
-if [[ $host =~ (max) ]]; then
+if [[ $host =~ ^(max) ]]; then
 
     packages+=(
+        # This still works!
+        apcupsd
+
         # photography tools used by various scripts
         imagemagick exiftool
 
@@ -198,7 +218,13 @@ if [[ $host =~ (max) ]]; then
         # protection apps
         knockknock
         blockblock
-        reikey
+        #reikey
+
+        # testing these
+        media-control qemu usage gh sox
+
+        # listed to quiet runs with --oob arg
+        protobuf
     )
 
     pipx_packages+=(
@@ -215,17 +241,21 @@ fi
 
 ###############################################################################
 
-check=
+orphans=
 clean=
 list=
+dryrun=
+oob=
 
 while [ $# -gt 0 ]; do
     case $1 in
-        --help)  usage ;;
-        --check) check=$1 ;;
-        --clean) clean=$1 ;;
-        --list)  list=$1 ;;
-        *)       break ;;
+        --help)    usage ;;
+        --orphans) orphans=$1 ;;
+        --clean)   clean=$1 ;;
+        --list)    list=$1 ;;
+        --dry-run) dryrun=$1 ;;
+        --oob)     oob=$1 ;;
+        *)         break ;;
     esac
     shift
 done
@@ -248,10 +278,22 @@ if [ "$list" ]; then
     for p in "${packages[@]}"; do echo $p; done
     for p in "${packages_with_options[@]}"; do echo $p; done
     exit 0
-elif [ "$check" ]; then
-    for leaf in $(brew leaves); do
+elif [ "$orphans" ]; then
+    for leaf in $(brew leaves --installed-as-dependency); do
         if ! member "$leaf" "${packages[@]}"; then
             echo "$leaf"
+        fi
+    done
+    exit 0
+elif [ "$oob" ]; then
+    # print things not in "${packages[@]}" but that
+    # `brew list --installed-on-request` prints
+    depends=( ${(f)"$(brew list --installed-as-dependency)"} )
+    for p in $(brew list --installed-on-request); do
+        if ! member "$p" "${packages[@]}"; then
+            if ! member "$p" "${depends[@]}"; then
+                echo "installed outside of script: $p"
+            fi
         fi
     done
     exit 0
@@ -272,21 +314,22 @@ fi
             if ! d "${manager[@]}" list "$name"; then
                 echo "Tapping $name..."
                 d "${manager[@]}" tap "$path"
-                d "${manager[@]}" install "$name"
+                d "${manager[@]}" install $dryrun "$name"
             else
                 echo "Tap $name already installed."
             fi
         done
     fi
 
-    d "${manager[@]}" upgrade
+    d "${manager[@]}" upgrade $dryrun
 
-    d "${manager[@]}" install "${packages[@]}"
+    d "${manager[@]}" install $dryrun "${packages[@]}"
     for package_with_options in "${packages_with_options[@]}"; do
-        d "${manager[@]}" install $package_with_options
+        d "${manager[@]}" install $dryrun $package_with_options
     done
 
-    [ "${#pipx_packages[@]}" -gt 0 ] && d pipx install "${pipx_packages[@]}"
+    [ "${#pipx_packages[@]}" -gt 0 ] &&
+        d pipx install $dryrun "${pipx_packages[@]}"
 
     [ "$clean" ] && d "${manager[@]}" cleanup
     exit 0
