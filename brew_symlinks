@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+exceptions='(/mole/.*/libexec/bin)'
+
 set -eu -o pipefail
 
 prog="$(basename "$0")"
@@ -46,7 +48,7 @@ while [ $# -gt 0 ]; do
     case $1 in
         --exec)    install=$1 ;;
 	-q)        quiet=$1 ;;
-        *)         usage extra args: $* ;;
+        *)         usage "extra args: $*" ;;
     esac
     shift
 done
@@ -90,11 +92,17 @@ shopt -s nullglob
     x --exec "$brew" cleanup -v
 
     cd "${prefix}"
+    # shellcheck disable=SC2162
     read -a gnubins <<< "$(find . '(' -name bin -o -name gnubin ')' -print0 | xargs -0 echo)"
 
     dst=${prefix}/bin
 
     for gnubin in "${gnubins[@]}"; do
+        if [[ $gnubin =~ $exceptions ]]; then
+            echo "ignore exception: $gnubin"
+            continue
+        fi
+        # shellcheck disable=SC2206
         progs=($gnubin/*)
         for f in "${progs[@]}"; do
 	    base=$(basename "$f")
