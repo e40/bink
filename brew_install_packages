@@ -134,9 +134,6 @@ packages=(
 ##### can probably remove:
     wakeonlan
 
-##### testing
-    dockutil
-
     # USB thumb driver creator
     #balenaetcher
 
@@ -228,7 +225,8 @@ if [[ $host =~ ^(max) ]]; then
         #reikey
 
         # testing these
-        media-control qemu usage gh sox
+        dockutil media-control qemu usage gh sox
+        ical-buddy mole
 
         # listed to quiet runs with --oob arg
         protobuf
