@@ -67,12 +67,12 @@ tempfile="/tmp/${prog}temp1$$"
 tempfile2="/tmp/${prog}temp2$$"
 rm -f "$tempfile"
 rm -f "$tempfile2"
-# shellcheck disable=SC2317
+# shellcheck disable=SC2329
 function exit_cleanup {
     rm -f "$tempfile"
     rm -f "$tempfile2"
 }
-# shellcheck disable=SC2317
+# shellcheck disable=SC2329
 function err_report {
     echo "Error on line $(caller)" 1>&2
 }
@@ -90,7 +90,7 @@ function notify {
 # usage: value_sans_leading_zero number
 #   print NUMBER without the leading zero, if there is one
 #### unused, leave it for now
-# shellcheck disable=SC2317
+# shellcheck disable=SC2329
 function value_sans_leading_zero {
     if [[ $1 =~ 0(.*) ]]; then
         echo "${BASH_REMATCH[1]}"
@@ -145,8 +145,23 @@ function ignore_disk {
         [ "$disk" = "disk0" ] && continue
 
         if ! smartctl -a "$disk" > "$tempfile"; then
-            cat "$tempfile"
-            errordie smartctl failed
+            if ! grep -q code=706 "$tempfile"; then
+                cat "$tempfile"
+                errordie "smartctl for $disk failed"
+            fi
+            # with macOS 26.4, smartctl started failing, because it couldn't
+            # get SMART info for external SSD.  If it throws code=706, that
+            # means smartctl couldn't read the NVMe SMART info.
+            if ! $diskutil info "$disk" > "$tempfile"; then
+                errordie "diskutil for $disk failed"
+            else
+                if grep -E -q "SMART Status:.*Verified$" "$tempfile"; then
+                    # as good as we can get
+                    continue
+                else
+                    errordie "$disk failed diskutil SMART test"
+                fi
+            fi
         fi
 
         if ! grep 'Device Model' "$tempfile" > "$tempfile2"; then
