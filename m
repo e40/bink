@@ -63,7 +63,7 @@ tempfile=/tmp/temp$$
 
 command="$*"
 
-# shellcheck disable=SC2317
+# shellcheck disable=SC2329
 function process_output {
     local s="${subject-$status: $command}"
     if [ ! -s "$tempfile" ]; then
