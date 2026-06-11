@@ -142,6 +142,7 @@ packages=(
 )
 
 taps=(
+    # https://github.com/d12frosted/homebrew-emacs-plus
     #"emacs-plus:d12frosted/emacs-plus"
 )
 
