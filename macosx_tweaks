@@ -365,6 +365,13 @@ d "Chrome: Use the system-native print preview dialog" \
 # This adds my "FinderLinks" to the Dock
 defaults write com.apple.dock persistent-others -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>file:///Users/layer/Stacks/FinderLinks/</string><key>_CFURLStringType</key><integer>15</integer></dict><key>displayas</key><integer>1</integer><key>showas</key><integer>3</integer></dict><key>tile-type</key><string>directory-tile</string></dict>"
 
+d "Microsoft Update check internal 1w" \
+  com.microsoft.autoupdate2 UpdateCheckInterval -int 10080
+
+d "Microsoft Update how to check" \
+  com.microsoft.autoupdate2 HowToCheck -string "AutomaticDownload"
+
+
 [ "$restart_finder" ] && killall Finder
 [ "$restart_systemuiserver" ] && 
     echo "starting system UI server" &&
@@ -507,33 +514,6 @@ ethernet="$(ethernet_device_name)"
 sudo networksetup -setv6LinkLocal "$ethernet" 
 
 ./check_fulldiskaccess.sh
-
-# this is SOOOOOO annoying.  Even if you have it turned off in
-# prefs, it still runs.
-# from https://superuser.com/a/1649000
-### to find it do this:
-#    launchctl list | grep microsoft
-#    sudo launchctl list | grep microsoft
-# whichever it's running as ($USER or root), do this:
-#    launchctl unload /Library/LaunchAgents/com.microsoft.update.agent.plist
-muaplist=/Library/LaunchAgents/com.microsoft.update.agent.plist
-if [ -f "$muaplist" ]; then
-#### it runs as `$USER`
-#    sudo launchctl disable "gui/$(id -u)/com.microsoft.update.agent"
-#### let's see if this is good enough to stop the MFer
-#    launchctl disable "gui/$(id -u)/com.microsoft.update.agent"
-#### this causes it to not run manually
-    #launchctl unload "$muaplist"
-
-    # check once a week, if the above doesn't work
-    sudo plutil -replace StartInterval -integer $(( 7 * 3600 * 24 )) "$muaplist"
-#### check status:
-    #plutil -p "$muaplist"
-fi
-if [ -f /Library/LaunchAgents/com.microsoft.OneDriveStandaloneUpdater.plist ]; then
-    launchctl unload /Library/LaunchAgents/com.microsoft.OneDriveStandaloneUpdater.plist 
-
-exit 0
 
 ###############################################################################
 ##### TODO ####################################################################
