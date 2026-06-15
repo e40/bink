@@ -176,7 +176,7 @@ if [[ $host =~ ^(max) ]]; then
         backuploupe
 
         # for Fujitsu ix500 scanner
-        homebrew/cask/fujitsu-scansnap-home
+        naps2 scan-backends
 
         # for osxphotos (see below)
         pipx
