@@ -231,6 +231,9 @@ if [[ $host =~ ^(max) ]]; then
 
         # listed to quiet runs with --oob arg
         protobuf
+
+        # to peer into media files and see what codec's they use, etc
+        mediainfo
     )
 
     pipx_packages+=(
@@ -294,7 +297,7 @@ elif [ "$orphans" ]; then
 elif [ "$oob" ]; then
     # print things not in "${packages[@]}" but that
     # `brew list --installed-on-request` prints
-    depends=( ${(f)"$(brew list --installed-as-dependency)"} )
+    depends=( ${(f)"$(brew list --no-installed-on-request)"} )
     for p in $(brew list --installed-on-request); do
         if ! member "$p" "${packages[@]}"; then
             if ! member "$p" "${depends[@]}"; then
