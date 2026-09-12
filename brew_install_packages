@@ -175,8 +175,13 @@ if [[ $host =~ ^(max) ]]; then
         # https://www.soma-zone.com/BackupLoupe/
         backuploupe
 
-        # for Fujitsu ix500 scanner
-        naps2 scan-backends
+        # For my Fujitsu ix500 scanner...
+        # The quality of this software is just not good enough:
+        #   naps2 sane-backends
+        # Unfortunately, there is no native version of this, so it will
+        # stop working in macOS 28!
+        #fujitsu-scansnap-home
+        ####upgraded to the iX2400 so I install that outside of homebrew
 
         # for osxphotos (see below)
         pipx
