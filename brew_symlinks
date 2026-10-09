@@ -1,54 +1,65 @@
 #! /usr/bin/env bash
-
-exceptions='(/mole/.*/libexec/bin)'
+#
+# Make GNU programs take precedence over macOS/BSD ones by symlinking
+# Homebrew's opt/<formula>/libexec/gnubin/* into ${prefix}/bin.  Also
+# repairs or removes links created by this or older versions of the
+# script.
 
 set -eu -o pipefail
 
 prog="$(basename "$0")"
+
+# Extra directories, relative to the Homebrew prefix, whose programs
+# should also be linked.  Use opt/ paths so links survive upgrades.
+# Searched after the gnubin directories.  Examples:
+#   extra_dirs=(opt/python@3.14/libexec/bin)
+#   extra_dirs=(opt/openjdk/libexec/openjdk.jdk/Contents/Home/bin)
+extra_dirs=()
 
 function errordie {
     [ "${*-}" ] && echo "$prog: $*" 1>&2
     exit 1
 }
 
+[ "$(uname -s)" = "Darwin" ] || errordie only runs on macOS
+
 if ! brew=$(type -p brew); then
-     errordie brew is not installed or in PATH
+    errordie brew is not installed or in PATH
 fi
 
-prefix=$($brew --prefix)
-
-realpath=$($brew --prefix coreutils)/bin/grealpath
+prefix=$("$brew" --prefix)
+dst=$prefix/bin
 
 function usage {
     [ "${*-}" ] && echo "$prog: $*" 1>&2
     cat 1>&2 <<EOF
 Usage: $prog [--exec] [-q]
 
-Print what Homebrew symlinks should be created in ${prefix}/bin/.
-Homebrew already creates links for programs which do not conflict
-with native macOS programs.  What this script does: symlink the
-programs in
-  ${prefix}/.../libexec/gnubin
-into ${prefix}/bin/.
+Make GNU programs take precedence over the macOS/BSD versions by
+symlinking the programs in
+  ${prefix}/opt/<formula>/libexec/gnubin
+into ${dst}/.  Links go through opt/ so they survive upgrades.
 
-Command line args:
+Also repairs links made by this script (or older versions of it) that
+are dangling, out of date, or point somewhere they shouldn't, such as
+Homebrew's internal build shims.
 
---exec  :: create the links printed
--q      :: do not print info about --exec
+Without --exec, only prints what would be done.
+
+--exec  :: make the changes
+-q      :: quieter: no "skip" notes and no --exec hint
 EOF
     exit 1
 }
-
-[ "$(uname -s)" = "Darwin" ] || errordie only runs on macOS
 
 install=
 quiet=
 
 while [ $# -gt 0 ]; do
     case $1 in
-        --exec)    install=$1 ;;
-	-q)        quiet=$1 ;;
-        *)         usage "extra args: $*" ;;
+        --exec) install=$1 ;;
+        -q)     quiet=$1 ;;
+        *)      usage "extra args: $*" ;;
     esac
     shift
 done
@@ -60,70 +71,121 @@ else
     admin="admin@$(hostname -s)"
 fi
 
-# usage: x command args
-#   Execute COMMAND with ARGS in the appropriate environment, which
-#   is as user 'admin'.
+# usage: x [--exec] command args...
+#   Print, or execute, COMMAND with ARGS as a user with admin rights.
 function x {
     local execute=$install
     if [ "$1" = "--exec" ]; then
         execute=$1
         shift
     fi
-    local command="$1"
-    shift
     if [ "$execute" ]; then
-        echo "+ $command $*"
-        if [ ! "$admin" ]; then # execute directly
-            "$command" "$@"
-        else # use the admin credentials
-            ssh -i "$HOME/.ssh/id_rsa_nopw" "$admin" "$command" "$@"
+        echo "+ $*"
+        if [ ! "$admin" ]; then
+            "$@"
+        else
+            # ssh joins its args into one string for the remote shell
+            ssh -i "$HOME/.ssh/id_rsa_nopw" "$admin" "$(printf '%q ' "$@")"
         fi
     else
-        echo "would: $command $*"
+        echo "would: $*"
     fi
 }
 
 # so * expands to nothing if there are no matches
 shopt -s nullglob
 
-{
-    cd "$prefix"
+# Homebrew's own link for a linked keg: ../Cellar/<formula>/<version>/bin/<prog>
+keg_link_re='^\.\./Cellar/([^/]+)/[^/]+/(s?bin)/[^/]+$'
+# Anything this script, or its old find-every-bin-dir version, could create
+managed_re='^\.\./(opt/.+|(Library|docs|Cellar|lib/node_modules/npm)/(.+/)?(bin|gnubin))/[^/]+$'
 
+# usage: is_managed name target
+#   True if a link NAME -> TARGET in $dst was made by this script (or an
+#   older version of it), rather than by Homebrew, npm, or by hand.
+function is_managed {
+    local name=$1 target=$2
+    [ "${target##*/}" = "$name" ] || return 1
+    if [[ $target =~ $keg_link_re ]]; then
+        # Homebrew's, unless that keg isn't linked (keg-only), in which
+        # case the old version of this script made it.
+        [ "${BASH_REMATCH[2]}" = bin ] &&
+            [ ! -e "$prefix/var/homebrew/linked/${BASH_REMATCH[1]}" ]
+        return
+    fi
+    [[ $target =~ $managed_re ]]
+}
+
+{
     x --exec "$brew" cleanup -v
 
-    cd "${prefix}"
-    # shellcheck disable=SC2162
-    read -a gnubins <<< "$(find . '(' -name bin -o -name gnubin ')' -print0 | xargs -0 echo)"
+    # Source directories, in priority order.  opt/ contains alias links
+    # too, so dedupe by the real formula name.
+    srcs=()
+    seen=" "
+    for d in "$prefix"/opt/*/libexec/gnubin; do
+        real=$(cd -P "$d" && pwd)
+        [[ $real =~ ^"$prefix"/Cellar/([^/]+)/[^/]+/libexec/gnubin$ ]] || continue
+        formula=${BASH_REMATCH[1]}
+        [[ $seen == *" $formula "* ]] && continue
+        seen+="$formula "
+        [ -d "$prefix/opt/$formula/libexec/gnubin" ] || continue
+        srcs+=("opt/$formula/libexec/gnubin")
+    done
+    for d in ${extra_dirs[@]+"${extra_dirs[@]}"}; do
+        [ -d "$prefix/$d" ] || errordie "extra dir does not exist: $prefix/$d"
+        srcs+=("$d")
+    done
 
-    dst=${prefix}/bin
+    # usage: find_desired name
+    #   Set $desired to the link target NAME should have, or empty.
+    function find_desired {
+        desired=
+        local s
+        for s in ${srcs[@]+"${srcs[@]}"}; do
+            if [ -f "$prefix/$s/$1" ] && [ -x "$prefix/$s/$1" ]; then
+                desired="../$s/$1"
+                return
+            fi
+        done
+    }
 
-    for gnubin in "${gnubins[@]}"; do
-        if [[ $gnubin =~ $exceptions ]]; then
-            echo "ignore exception: $gnubin"
-            continue
+    # Pass 1: fix or remove existing links that are ours.
+    for link in "$dst"/*; do
+        [ -L "$link" ] || continue
+        name=${link##*/}
+        target=$(readlink "$link")
+        is_managed "$name" "$target" || continue
+        find_desired "$name"
+        [ "$target" = "$desired" ] && continue
+        x /bin/rm -f "$link"
+        if [ "$desired" ]; then
+            x /bin/ln -s "$desired" "$link"
         fi
-        # shellcheck disable=SC2206
-        progs=($gnubin/*)
-        for f in "${progs[@]}"; do
-	    base=$(basename "$f")
-	    if [ -L "${dst}/$base" ] && [ ! -e "${dst}/$base" ]; then
-	        # link is bad, so remove it
-	        x rm -f "${dst}/$base"
-	    fi
+    done
 
-	    if [ -e "${dst}/$base" ]; then
-                : # ignore
-	    elif [ ! -L "${dst}/$base" ]; then
-                # This is to make the symlinks relative
-                target=$($realpath -s -m --relative-to="${dst}/" "${prefix}/$f")
-	        x ln -s "${target}" "bin/$base"
-	    fi
+    # Pass 2: create missing links.
+    for s in ${srcs[@]+"${srcs[@]}"}; do
+        for f in "$prefix/$s"/*; do
+            name=${f##*/}
+            find_desired "$name"
+            # skip if not a program, or shadowed by an earlier directory
+            [ "$desired" = "../$s/$name" ] || continue
+            if [ -L "$dst/$name" ] || [ -e "$dst/$name" ]; then
+                if [ ! "$quiet" ] &&
+                   ! { [ -L "$dst/$name" ] &&
+                       is_managed "$name" "$(readlink "$dst/$name")"; }; then
+                    echo "skip: $dst/$name exists and isn't ours"
+                fi
+                continue
+            fi
+            x /bin/ln -s "$desired" "$dst/$name"
         done
     done
 
     if [ ! "$install" ] && [ ! "$quiet" ]; then
-	echo ""
-	echo "To execute the above commands do: $prog --exec"
+        echo ""
+        echo "To execute the above commands do: $prog --exec"
     fi
     exit 0
 }
