@@ -3,4 +3,32 @@
 # https://github.com/d12frosted/homebrew-emacs-plus
 # $ brew tap d12frosted/emacs-plus
 # $ brew install emacs-plus-app
-nohup "/Applications/Emacs.app/Contents/MacOS/Emacs" --debug-init "$@" &> /dev/null &
+
+APP=/Applications/Emacs.app
+PLIST="$APP/Contents/Info.plist"
+KEY=NSLocalNetworkUsageDescription
+
+## Experiment: give Emacs a Local Network Privacy identity. Processes
+## spawned inside Emacs (shell, ssh, git, TRAMP) are attributed to
+## Emacs, not to themselves, and emacs-plus ships without
+## NSLocalNetworkUsageDescription and with an ad-hoc signature, so
+## macOS never prompts and LAN connections fail with
+##   ssh mini24 date
+##   ssh: No route to host
+function sign-it {
+    # Key present => this build was already patched and signed.
+    /usr/libexec/PlistBuddy -c "Print :$KEY" "$PLIST" &> /dev/null && return 0
+
+    echo "$0: new Emacs build; adding $KEY and re-signing" >&2
+    /usr/libexec/PlistBuddy \
+        -c "Add :$KEY string \"Emacs connects to hosts on the local network.\"" \
+        "$PLIST" || return 1
+    if ! codesign --force --deep -s - "$APP"; then
+        # Roll back so the next launch retries instead of skipping.
+        /usr/libexec/PlistBuddy -c "Delete :$KEY" "$PLIST"
+        return 1
+    fi
+}
+
+sign-it
+nohup "$APP/Contents/MacOS/Emacs" --debug-init "$@" &> /dev/null &
