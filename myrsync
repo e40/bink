@@ -38,7 +38,8 @@ EOF
 debug=
 verbose=-q
 
-maxdelete=250
+# upping it from 250 to 750... the volumes it's used on are huge
+maxdelete=750
 baseargs=(-a --delete --delete-before --delete-excluded --exclude lost+found)
 
 while [ $# -gt 0 ]; do
